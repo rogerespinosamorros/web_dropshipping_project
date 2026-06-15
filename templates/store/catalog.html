@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Catálogo · Cultiva{% endblock %}
+{% block content %}
+<section class="page-title"><span class="eyebrow">Cultiva a tu manera</span><h1>Catálogo</h1><p>Productos fiables, explicados con claridad.</p></section>
+<section class="catalog-layout">
+  <aside>
+    <h3>Categorías</h3>
+    <a class="{% if not selected_category %}active{% endif %}" href="{% url 'store:catalog' %}{% if query %}?q={{ query }}{% endif %}">Todas</a>
+    {% for category in categories %}<a class="{% if selected_category == category.slug %}active{% endif %}" href="?categoria={{ category.slug }}{% if query %}&q={{ query }}{% endif %}">{{ category.name }}</a>{% endfor %}
+  </aside>
+  <div>
+    <div class="result-bar"><p><b>{{ products.count }}</b> productos{% if query %} para “{{ query }}”{% endif %}</p></div>
+    <div class="product-grid">
+      {% for product in products %}{% include "store/_product_card.html" %}{% empty %}<div class="empty-state">No hay productos que coincidan con la búsqueda.</div>{% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}
+
