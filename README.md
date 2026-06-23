@@ -23,6 +23,7 @@ Copy-Item .env.example .env
 python manage.py makemigrations
 python manage.py migrate
 python manage.py seed_catalog
+python manage.py import_products data/catalog_sample.csv --rewrite-descriptions
 python manage.py createsuperuser
 python manage.py runserver
 ```
@@ -36,3 +37,14 @@ Abre `http://127.0.0.1:8000/`. El panel de administración estará en `http://12
 3. Añadir cuentas de cliente, direcciones, emails y seguimiento de pedidos.
 4. Configurar PostgreSQL, almacenamiento de imágenes y despliegue.
 
+## Importar productos
+
+El proyecto incluye un importador masivo:
+
+```powershell
+python manage.py import_products data/catalog_sample.csv --rewrite-descriptions
+```
+
+Columnas soportadas: `sku`, `name`, `category`, `supplier`, `price`, `compare_at_price`, `image_url`, `source_url`, `featured`, `is_new`, `description`.
+
+Para datos de terceros conviene importar datos factuales como nombre, SKU, precio, categoría e imagen, y generar descripciones propias con `--rewrite-descriptions` en vez de copiar textos completos de otra tienda.

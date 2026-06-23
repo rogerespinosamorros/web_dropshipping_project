@@ -47,6 +47,7 @@ class Product(models.Model):
         "precio anterior", max_digits=10, decimal_places=2, blank=True, null=True
     )
     image_url = models.URLField("URL de imagen", blank=True)
+    source_url = models.URLField("URL de origen", blank=True)
     featured = models.BooleanField("destacado", default=False)
     is_new = models.BooleanField("nuevo", default=False)
     active = models.BooleanField("activo", default=True)
@@ -70,4 +71,3 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
-

@@ -1,3 +1,8 @@
+import csv
+import os
+import tempfile
+
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
@@ -36,3 +41,28 @@ class StoreViewsTests(TestCase):
         self.assertRedirects(response, reverse("store:cart"))
         self.assertEqual(self.client.session["cart"][str(self.product.id)], 1)
 
+
+class ImportProductsCommandTests(TestCase):
+    def test_import_products_creates_product_with_generated_description(self):
+        with tempfile.NamedTemporaryFile("w", suffix=".csv", newline="", delete=False, encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=["sku", "name", "category", "supplier", "price"])
+            writer.writeheader()
+            writer.writerow(
+                {
+                    "sku": "IMP-001",
+                    "name": "Maceta profesional",
+                    "category": "Macetas",
+                    "supplier": "Proveedor importado",
+                    "price": "12.50",
+                }
+            )
+            path = file.name
+
+        try:
+            call_command("import_products", path, rewrite_descriptions=True)
+        finally:
+            os.unlink(path)
+
+        product = Product.objects.get(sku="IMP-001")
+        self.assertEqual(product.category.name, "Macetas")
+        self.assertIn("Maceta profesional", product.description)

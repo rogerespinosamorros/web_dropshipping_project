@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Soluciones inteligentes para cultivo urbano y profesional.">
   <title>{% block title %}Cultiva{% endblock %}</title>
+  <script>
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
@@ -22,6 +26,7 @@
     <nav>
       <a href="{% url 'store:catalog' %}">Catálogo</a>
       <a href="/admin/">Acceso profesional</a>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar modo de color">Modo oscuro</button>
       <a class="cart-link" href="{% url 'store:cart' %}">Carrito <b>{{ cart_count }}</b></a>
     </nav>
   </header>
@@ -35,6 +40,6 @@
     <div><strong>Ayuda</strong><a href="#">Envíos y devoluciones</a><a href="#">Contacto</a></div>
     <div><strong>Profesionales</strong><a href="/admin/">Área de gestión</a><a href="#">Trabaja con nosotros</a></div>
   </footer>
+  <script src="{% static 'js/theme.js' %}"></script>
 </body>
 </html>
-

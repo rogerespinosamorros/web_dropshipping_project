@@ -7,7 +7,7 @@ from .models import Category, Product, Supplier
 class ProductAdmin(admin.ModelAdmin):
     list_display = ("name", "sku", "category", "supplier", "price", "active")
     list_filter = ("active", "featured", "is_new", "category", "supplier")
-    search_fields = ("name", "sku", "description")
+    search_fields = ("name", "sku", "description", "source_url")
     prepopulated_fields = {"slug": ("name",)}
 
 
@@ -17,4 +17,3 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Supplier)
-
