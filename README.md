@@ -48,3 +48,5 @@ python manage.py import_products data/catalog_sample.csv --rewrite-descriptions
 Columnas soportadas: `sku`, `name`, `category`, `supplier`, `price`, `compare_at_price`, `image_url`, `source_url`, `featured`, `is_new`, `description`.
 
 Para datos de terceros conviene importar datos factuales como nombre, SKU, precio, categoría e imagen, y generar descripciones propias con `--rewrite-descriptions` en vez de copiar textos completos de otra tienda.
+
+Para Hortitec, consulta `IMPORTAR_HORTITEC.md`. Incluye un script de navegador para exportar listados grandes a CSV.
