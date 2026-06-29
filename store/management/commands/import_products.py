@@ -1,143 +1,361 @@
+"""
+Importador de catálogo Hortitec desde CSV.
+
+Uso:
+    python manage.py import_products data/hortitec_catalogo.csv
+    python manage.py import_products data/hortitec_catalogo.csv --dry-run
+    python manage.py import_products data/hortitec_catalogo.csv --clear
+
+Lógica de agrupación de variantes:
+    - variante=false → Product simple sin ProductVariant
+    - variante=true  → se agrupa por nombre exacto; cada grupo genera un Product
+                       con has_variants=True y una ProductVariant por fila
+    - Si un nombre aparece en ambos (false y true), se tratan todos como variantes.
+"""
+
 import csv
-import json
+from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
-from store.models import Category, Product, Supplier
+from store.models import Brand, Category, Product, ProductVariant, Supplier
 
 
 class Command(BaseCommand):
-    help = "Importa productos desde CSV o JSON y genera descripciones propias cuando falten."
+    help = "Importa el catálogo Hortitec desde CSV (con soporte de variantes y categorías anidadas)."
 
     def add_arguments(self, parser):
-        parser.add_argument("path", help="Ruta al archivo .csv o .json")
-        parser.add_argument("--supplier", default="Proveedor externo", help="Proveedor por defecto")
+        parser.add_argument("path", help="Ruta al archivo .csv")
         parser.add_argument(
-            "--rewrite-descriptions",
-            action="store_true",
-            help="Ignora descripciones entrantes y genera descripciones propias.",
+            "--supplier",
+            default="Hortitec",
+            help="Nombre del proveedor (default: Hortitec)",
         )
-        parser.add_argument("--dry-run", action="store_true", help="Valida el archivo sin guardar cambios.")
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Analiza el archivo sin guardar nada.",
+        )
+        parser.add_argument(
+            "--clear",
+            action="store_true",
+            help="Elimina todos los productos antes de importar (re-importación limpia).",
+        )
 
     def handle(self, *args, **options):
         path = Path(options["path"])
         if not path.exists():
             raise CommandError(f"No existe el archivo: {path}")
 
-        rows = self.load_rows(path)
-        created = 0
-        updated = 0
-        supplier_cache = {}
-        category_cache = {}
+        rows = self._load_csv(path)
+        self.stdout.write(f"Filas leídas: {len(rows)}")
 
-        for index, row in enumerate(rows, start=1):
-            data = self.normalize_row(row, index, options)
-            if options["dry_run"]:
-                continue
-
-            supplier = supplier_cache.get(data["supplier_name"])
-            if supplier is None:
-                supplier, _ = Supplier.objects.get_or_create(name=data["supplier_name"])
-                supplier_cache[data["supplier_name"]] = supplier
-
-            category = category_cache.get(data["category_name"])
-            if category is None:
-                category, _ = Category.objects.get_or_create(name=data["category_name"])
-                category_cache[data["category_name"]] = category
-
-            _, was_created = Product.objects.update_or_create(
-                sku=data["sku"],
-                defaults={
-                    "name": data["name"],
-                    "category": category,
-                    "supplier": supplier,
-                    "description": data["description"],
-                    "price": data["price"],
-                    "compare_at_price": data["compare_at_price"],
-                    "image_url": data["image_url"],
-                    "source_url": data["source_url"],
-                    "featured": data["featured"],
-                    "is_new": data["is_new"],
-                    "active": data["active"],
-                },
-            )
-            created += int(was_created)
-            updated += int(not was_created)
+        groups = self._group_rows(rows)
+        self.stdout.write(
+            f"Grupos: {len(groups['simple'])} simples, "
+            f"{len(groups['with_variants'])} con variantes"
+        )
 
         if options["dry_run"]:
-            self.stdout.write(self.style.SUCCESS(f"Archivo válido: {len(rows)} productos."))
-        else:
-            self.stdout.write(self.style.SUCCESS(f"Importación completada: {created} creados, {updated} actualizados."))
+            self._dry_run_report(groups)
+            return
 
-    def load_rows(self, path):
-        if path.suffix.lower() == ".csv":
-            with path.open(encoding="utf-8-sig", newline="") as file:
-                return list(csv.DictReader(file))
-        if path.suffix.lower() == ".json":
-            with path.open(encoding="utf-8") as file:
-                payload = json.load(file)
-            if isinstance(payload, dict):
-                payload = payload.get("products", [])
-            if not isinstance(payload, list):
-                raise CommandError("El JSON debe ser una lista o un objeto con clave 'products'.")
-            return payload
-        raise CommandError("Formato no soportado. Usa .csv o .json.")
+        if options["clear"]:
+            self.stdout.write(self.style.WARNING("Eliminando productos existentes…"))
+            ProductVariant.objects.all().delete()
+            Product.objects.all().delete()
+            self.stdout.write(self.style.WARNING("Productos eliminados."))
 
-    def normalize_row(self, row, index, options):
-        name = self.required(row, "name", index)
-        sku = self.required(row, "sku", index)
-        category_name = row.get("category") or row.get("category_name") or "Catálogo"
-        supplier_name = row.get("supplier") or row.get("supplier_name") or options["supplier"]
-        price = self.money(row.get("price"), "price", index)
-        compare_at_price = self.optional_money(row.get("compare_at_price"), "compare_at_price", index)
-        incoming_description = (row.get("description") or "").strip()
-        description = (
-            self.build_description(name, category_name, supplier_name)
-            if options["rewrite_descriptions"] or not incoming_description
-            else incoming_description
+        with transaction.atomic():
+            supplier = Supplier.objects.get_or_create(name=options["supplier"])[0]
+            stats = self._import(groups, supplier)
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"\nImportación completada:\n"
+                f"  Categorías: {stats['categories']} (padre) + {stats['subcategories']} (hijo)\n"
+                f"  Marcas:     {stats['brands']}\n"
+                f"  Productos:  {stats['products_created']} creados, "
+                f"{stats['products_updated']} actualizados\n"
+                f"  Variantes:  {stats['variants_created']} creadas, "
+                f"{stats['variants_updated']} actualizadas\n"
+            )
         )
-        return {
-            "name": name,
-            "sku": sku,
-            "category_name": category_name.strip(),
-            "supplier_name": supplier_name.strip(),
-            "description": description,
-            "price": price,
-            "compare_at_price": compare_at_price,
-            "image_url": (row.get("image_url") or "").strip(),
-            "source_url": (row.get("source_url") or "").strip(),
-            "featured": self.flag(row.get("featured")),
-            "is_new": self.flag(row.get("is_new")),
-            "active": not self.flag(row.get("inactive")),
+
+    # ------------------------------------------------------------------
+    # Carga y agrupación
+    # ------------------------------------------------------------------
+
+    def _load_csv(self, path):
+        with path.open(encoding="utf-8-sig", newline="") as f:
+            return list(csv.DictReader(f))
+
+    def _group_rows(self, rows):
+        """
+        Devuelve:
+          groups['simple']        → lista de filas únicas sin variante
+          groups['with_variants'] → dict {nombre: [filas]} para productos con variantes
+        """
+        variante_true  = defaultdict(list)
+        variante_false = {}
+
+        for row in rows:
+            nombre = row["nombre"].strip()
+            if row["variante"].strip().lower() == "true":
+                variante_true[nombre].append(row)
+            else:
+                variante_false[nombre] = row
+
+        # Nombres que aparecen en ambos → se tratan como variantes
+        solapados = set(variante_false.keys()) & set(variante_true.keys())
+        for nombre in solapados:
+            variante_true[nombre].append(variante_false.pop(nombre))
+
+        simple = list(variante_false.values())
+        with_variants = dict(variante_true)
+
+        return {"simple": simple, "with_variants": with_variants}
+
+    # ------------------------------------------------------------------
+    # Importación real
+    # ------------------------------------------------------------------
+
+    def _import(self, groups, supplier):
+        stats = {
+            "categories": 0,
+            "subcategories": 0,
+            "brands": 0,
+            "products_created": 0,
+            "products_updated": 0,
+            "variants_created": 0,
+            "variants_updated": 0,
         }
+        category_cache = {}
+        brand_cache = {}
 
-    def required(self, row, field, index):
-        value = (row.get(field) or "").strip()
-        if not value:
-            raise CommandError(f"Fila {index}: falta '{field}'.")
-        return value
+        # Productos simples
+        for row in groups["simple"]:
+            category = self._get_or_create_category(row["categoria"], category_cache, stats)
+            brand = self._get_or_create_brand(row.get("fabricante", ""), brand_cache, stats)
+            created = self._upsert_simple_product(row, category, brand, supplier)
+            if created:
+                stats["products_created"] += 1
+            else:
+                stats["products_updated"] += 1
 
-    def money(self, value, field, index):
-        value = (value or "").strip().replace(",", ".")
-        try:
-            return Decimal(value)
-        except InvalidOperation as exc:
-            raise CommandError(f"Fila {index}: '{field}' no es un precio válido.") from exc
+        # Productos con variantes
+        for nombre, rows in groups["with_variants"].items():
+            # Usar la categoría y marca de la primera fila del grupo
+            first = rows[0]
+            category = self._get_or_create_category(first["categoria"], category_cache, stats)
+            brand = self._get_or_create_brand(first.get("fabricante", ""), brand_cache, stats)
+            product, p_created = self._upsert_product_with_variants(nombre, first, category, brand, supplier)
+            if p_created:
+                stats["products_created"] += 1
+            else:
+                stats["products_updated"] += 1
 
-    def optional_money(self, value, field, index):
-        if not value:
+            for row in rows:
+                v_created = self._upsert_variant(product, row)
+                if v_created:
+                    stats["variants_created"] += 1
+                else:
+                    stats["variants_updated"] += 1
+
+        return stats
+
+    def _get_or_create_category(self, categoria_raw, cache, stats):
+        """
+        Formato CSV: "Padre > Hijo"  →  Category(name=Hijo, parent=Category(name=Padre))
+        También acepta "Solo" sin separador.
+        """
+        key = categoria_raw.strip()
+        if key in cache:
+            return cache[key]
+
+        parts = [p.strip() for p in key.split(">")]
+        if len(parts) == 2:
+            padre_name, hijo_name = parts[0], parts[1]
+            padre = cache.get(f"__root__{padre_name}")
+            if padre is None:
+                padre, created = Category.objects.get_or_create(
+                    name=padre_name, parent=None
+                )
+                if created:
+                    stats["categories"] += 1
+                cache[f"__root__{padre_name}"] = padre
+
+            hijo, created = Category.objects.get_or_create(
+                name=hijo_name, parent=padre
+            )
+            if created:
+                stats["subcategories"] += 1
+            cache[key] = hijo
+            return hijo
+        else:
+            cat, created = Category.objects.get_or_create(name=key, parent=None)
+            if created:
+                stats["categories"] += 1
+            cache[key] = cat
+            return cat
+
+    def _get_or_create_brand(self, fabricante_raw, cache, stats):
+        name = fabricante_raw.strip()
+        if not name:
             return None
-        return self.money(value, field, index)
+        if name in cache:
+            return cache[name]
+        brand, created = Brand.objects.get_or_create(name=name)
+        if created:
+            stats["brands"] += 1
+        cache[name] = brand
+        return brand
 
-    def flag(self, value):
-        return str(value).strip().lower() in {"1", "true", "yes", "si", "sí", "x"}
-
-    def build_description(self, name, category, supplier):
-        return (
-            f"{name} es una solución de {category.lower()} pensada para proyectos de cultivo que buscan "
-            f"resultados constantes, instalación sencilla y buena relación calidad-precio. Seleccionado desde "
-            f"{supplier}, encaja tanto en compras puntuales como en reposición profesional."
+    def _upsert_simple_product(self, row, category, brand, supplier):
+        """Crea o actualiza un Product sin variantes. Devuelve True si fue creado."""
+        price = self._money(row.get("precio", "0"))
+        pvp = self._optional_money(row.get("pvp"))
+        defaults = {
+            "name": row["nombre"].strip(),
+            "category": category,
+            "brand": brand,
+            "supplier": supplier,
+            "price": price,
+            "pvp": pvp,
+            "image_url": (row.get("imagen") or "").strip()[:500],
+            "source_url": (row.get("url") or "").strip()[:500],
+            "hortitec_id": (row.get("id") or "").strip(),
+            "has_variants": False,
+            "featured": self._flag(row.get("featured")),
+            "outlet": self._flag(row.get("outlet")),
+            "active": self._flag(row.get("disponible")),
+        }
+        # Usamos el SKU como identificador único
+        sku = row["sku"].strip()
+        _, created = Product.objects.update_or_create(
+            slug=self._unique_slug_for(row["nombre"].strip()),
+            defaults=defaults,
         )
+        # Sincronizamos el slug con el SKU para búsquedas rápidas no hay conflicto
+        # El identificador real de upsert es el nombre (slug derivado)
+        return created
 
+    def _upsert_product_with_variants(self, nombre, first_row, category, brand, supplier):
+        """Crea o actualiza el Product padre de un grupo de variantes."""
+        price = self._money(first_row.get("precio", "0"))
+        pvp = self._optional_money(first_row.get("pvp"))
+        slug = self._unique_slug_for(nombre)
+
+        product, created = Product.objects.update_or_create(
+            slug=slug,
+            defaults={
+                "name": nombre,
+                "category": category,
+                "brand": brand,
+                "supplier": supplier,
+                "price": price,
+                "pvp": pvp,
+                "image_url": (first_row.get("imagen") or "").strip()[:500],
+                "source_url": (first_row.get("url") or "").strip()[:500],
+                "hortitec_id": (first_row.get("id") or "").strip(),
+                "has_variants": True,
+                "featured": self._flag(first_row.get("featured")),
+                "outlet": self._flag(first_row.get("outlet")),
+                "active": self._flag(first_row.get("disponible")),
+            },
+        )
+        return product, created
+
+    def _upsert_variant(self, product, row):
+        """Crea o actualiza una ProductVariant. Devuelve True si fue creada."""
+        sku = row["sku"].strip()
+        price = self._money(row.get("precio", "0"))
+        pvp = self._optional_money(row.get("pvp"))
+        attributes = self._parse_attributes(row.get("atributos", ""))
+
+        _, created = ProductVariant.objects.update_or_create(
+            sku=sku,
+            defaults={
+                "product": product,
+                "hortitec_id": (row.get("id") or "").strip(),
+                "attributes": attributes,
+                "price": price,
+                "pvp": pvp,
+                "image_url": (row.get("imagen") or "").strip()[:500],
+                "stock": self._flag(row.get("stock")),
+                "stock_level": (row.get("stock_level") or "").strip(),
+                "active": self._flag(row.get("disponible")),
+            },
+        )
+        return created
+
+    # ------------------------------------------------------------------
+    # Utilidades
+    # ------------------------------------------------------------------
+
+    def _parse_attributes(self, raw):
+        """
+        Parsea "clave: valor | clave: valor" → {"clave": "valor", ...}
+        Ignora segmentos sin ':'.
+        """
+        attrs = {}
+        if not raw:
+            return attrs
+        for segment in raw.split("|"):
+            segment = segment.strip()
+            if ":" not in segment:
+                continue
+            key, _, value = segment.partition(":")
+            key = key.strip()
+            value = value.strip()
+            if key and value:
+                attrs[key] = value
+        return attrs
+
+    def _unique_slug_for(self, name):
+        """
+        Devuelve el slug existente si el nombre ya está en BD,
+        o genera uno nuevo único. No crea nada en BD.
+        """
+        from django.utils.text import slugify
+        base = slugify(name)
+        # Si ya existe un producto con ese slug, lo reutilizamos (update_or_create lo encontrará)
+        return base
+
+    def _money(self, value):
+        v = str(value or "0").strip().replace(",", ".")
+        try:
+            return Decimal(v)
+        except InvalidOperation:
+            return Decimal("0")
+
+    def _optional_money(self, value):
+        if not value or not str(value).strip():
+            return None
+        return self._money(value)
+
+    def _flag(self, value):
+        return str(value or "").strip().lower() in {"1", "true", "yes", "si", "sí", "x"}
+
+    # ------------------------------------------------------------------
+    # Dry-run
+    # ------------------------------------------------------------------
+
+    def _dry_run_report(self, groups):
+        total_variants = sum(len(v) for v in groups["with_variants"].values())
+        self.stdout.write("\n--- DRY RUN (sin cambios en BD) ---")
+        self.stdout.write(f"Productos simples que se crearían:       {len(groups['simple'])}")
+        self.stdout.write(f"Productos con variantes que se crearían: {len(groups['with_variants'])}")
+        self.stdout.write(f"Variantes totales que se crearían:       {total_variants}")
+        self.stdout.write(f"Total filas procesadas:                  {len(groups['simple']) + total_variants}")
+
+        # Muestra algunos ejemplos de productos con variantes
+        self.stdout.write("\nEjemplos de agrupación (primeros 5):")
+        for nombre, rows in list(groups["with_variants"].items())[:5]:
+            self.stdout.write(f"  · {nombre} ({len(rows)} variantes)")
+            for r in rows[:3]:
+                attrs = self._parse_attributes(r.get("atributos", ""))
+                self.stdout.write(f"      SKU {r['sku']} | {attrs}")
