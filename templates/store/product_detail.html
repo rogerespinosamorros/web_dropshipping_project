@@ -1,17 +1,111 @@
 {% extends "base.html" %}
-{% block title %}{{ product.name }} · Cultiva{% endblock %}
-{% block content %}
-<section class="product-detail">
-  <div class="detail-image">{% if product.image_url %}<img src="{{ product.image_url }}" alt="{{ product.name }}">{% else %}<span>🌿</span>{% endif %}</div>
-  <div class="detail-copy">
-    <p class="product-category">{{ product.category.name }} · {{ product.supplier.name }}</p>
-    <h1>{{ product.name }}</h1><p class="sku">Ref. {{ product.sku }}</p>
-    <p class="detail-description">{{ product.description }}</p>
-    <div class="detail-price">{{ product.price }} € {% if product.has_discount %}<del>{{ product.compare_at_price }} €</del>{% endif %}</div>
-    <form method="post" action="{% url 'store:add_to_cart' product.id %}">{% csrf_token %}<button class="button">Añadir al carrito</button></form>
-    <ul class="detail-list"><li>Entrega estimada en 24/48 horas</li><li>Pago seguro y protegido</li><li>Soporte antes y después de comprar</li></ul>
-  </div>
-</section>
-{% if related %}<section class="section"><div class="section-head"><h2>También te puede interesar</h2></div><div class="product-grid">{% for product in related %}{% include "store/_product_card.html" %}{% endfor %}</div></section>{% endif %}
+
+{% block title %}
+{{ product.name }} · Cultiva
 {% endblock %}
 
+{% block content %}
+
+<section class="product-detail">
+
+    <div class="detail-image">
+
+        {% if product.image_url %}
+            <img
+                src="{{ product.image_url }}"
+                alt="{{ product.name }}"
+                loading="lazy">
+        {% else %}
+            <span>🌿</span>
+        {% endif %}
+
+    </div>
+
+    <div class="detail-copy">
+
+        {% if product.category or product.supplier %}
+            <p class="product-category">
+
+                {% if product.category %}
+                    {{ product.category.name }}
+                {% endif %}
+
+                {% if product.category and product.supplier %}
+                    ·
+                {% endif %}
+
+                {% if product.supplier %}
+                    {{ product.supplier.name }}
+                {% endif %}
+
+            </p>
+        {% endif %}
+
+        <h1>{{ product.name }}</h1>
+
+        <p class="sku">
+            Referencia: {{ product.sku }}
+        </p>
+
+        <div class="detail-price">
+
+            <strong>{{ product.display_price }} €</strong>
+
+            {% if product.has_discount %}
+                <del>{{ product.compare_at_price }} €</del>
+            {% endif %}
+
+            <small>IVA incluido</small>
+
+        </div>
+
+        {% if product.description %}
+            <p class="detail-description">
+                {{ product.description }}
+            </p>
+        {% endif %}
+
+        <form
+            method="post"
+            action="{% url 'store:add_to_cart' product.id %}">
+
+            {% csrf_token %}
+
+            <button class="button" type="submit">
+                🛒 Añadir al carrito
+            </button>
+
+        </form>
+
+        <ul class="detail-list">
+            <li>✅ Entrega estimada en 24/48 horas</li>
+            <li>✅ Pago seguro</li>
+            <li>✅ Atención al cliente especializada</li>
+            <li>✅ Productos originales</li>
+        </ul>
+
+    </div>
+
+</section>
+
+{% if related %}
+
+<section class="section">
+
+    <div class="section-head">
+        <h2>También te puede interesar</h2>
+    </div>
+
+    <div class="product-grid">
+
+        {% for product in related %}
+            {% include "store/_product_card.html" %}
+        {% endfor %}
+
+    </div>
+
+</section>
+
+{% endif %}
+
+{% endblock %}
