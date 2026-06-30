@@ -139,44 +139,88 @@ def remove_from_cart(request, key):
 
 def cart(request):
     cart_data = request.session.get("cart", {})
+
+    # Limpiar entradas inválidas
+    valid_entries = [
+        entry for entry in cart_data.values()
+        if isinstance(entry, dict) and entry.get("product_id")
+    ]
+
+    product_ids = list({
+        entry["product_id"]
+        for entry in valid_entries
+    })
+
+    # Una única consulta para todos los productos
+    products = (
+        Product.objects
+        .filter(pk__in=product_ids, active=True)
+        .select_related("brand")
+        .prefetch_related("variants")
+    )
+
+    products_by_id = {
+        product.id: product
+        for product in products
+    }
+
     items = []
     subtotal = Decimal("0")
 
     for key, entry in cart_data.items():
+
         if not isinstance(entry, dict):
             continue
 
-        product_id = entry.get("product_id")
-        variant_id = entry.get("variant_id")
-        qty = entry.get("qty", 1)
+        product = products_by_id.get(entry.get("product_id"))
 
-        try:
-            product = Product.objects.select_related("brand").get(pk=product_id, active=True)
-        except Product.DoesNotExist:
+        if product is None:
             continue
 
-        if variant_id:
-            try:
-                variant = ProductVariant.objects.get(pk=variant_id, product=product)
-                unit_price = variant.price
-                label = str(variant)
-            except ProductVariant.DoesNotExist:
+        qty = entry.get("qty", 1)
+        variant = None
+
+        if entry.get("variant_id"):
+
+            variant = next(
+                (
+                    v for v in product.variants.all()
+                    if v.id == entry["variant_id"]
+                ),
+                None,
+            )
+
+            if variant is None:
                 continue
+
+            unit_price = variant.price
+            label = str(variant)
+
         else:
-            variant = None
+
             unit_price = product.display_price
             label = product.name
 
         line_total = unit_price * qty
         subtotal += line_total
-        items.append({
-            "key": key,
-            "product": product,
-            "variant": variant,
-            "label": label,
-            "unit_price": unit_price,
-            "qty": qty,
-            "line_total": line_total,
-        })
 
-    return render(request, "store/cart.html", {"items": items, "subtotal": subtotal})
+        items.append(
+            {
+                "key": key,
+                "product": product,
+                "variant": variant,
+                "label": label,
+                "unit_price": unit_price,
+                "qty": qty,
+                "line_total": line_total,
+            }
+        )
+
+    return render(
+        request,
+        "store/cart.html",
+        {
+            "items": items,
+            "subtotal": subtotal,
+        },
+    )

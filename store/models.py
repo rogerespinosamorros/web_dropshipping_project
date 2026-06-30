@@ -202,3 +202,49 @@ class ProductVariant(models.Model):
     def __str__(self):
         attrs = ", ".join(f"{k}: {v}" for k, v in self.attributes.items())
         return f"{self.product.name} — {attrs}" if attrs else f"{self.product.name} ({self.sku})"
+
+class ShopSettings(models.Model):
+    store_name = models.CharField(max_length=120, default="Mi Tienda")
+    contact_email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+
+    free_shipping_from = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=50,
+    )
+
+    shipping_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=5.95,
+    )
+
+    vat_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=21,
+    )
+
+    class Meta:
+        verbose_name = "Configuración de la tienda"
+        verbose_name_plural = "Configuración de la tienda"
+
+    def __str__(self):
+        return self.store_name
+
+    def save(self, *args, **kwargs):
+        """
+        Solo existirá una única configuración de tienda.
+        """
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        """
+        Devuelve la configuración de la tienda.
+        Si no existe, la crea automáticamente.
+        """
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj

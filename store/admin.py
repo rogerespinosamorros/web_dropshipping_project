@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Brand, Category, Product, ProductVariant, Supplier
+from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSettings
 
 
 @admin.register(Category)
@@ -103,3 +103,26 @@ class ProductVariantAdmin(admin.ModelAdmin):
     def attributes_summary(self, obj):
         items = list(obj.attributes.items())[:3]
         return " · ".join(f"{k}: {v}" for k, v in items)
+
+@admin.register(ShopSettings)
+class ShopSettingsAdmin(admin.ModelAdmin):
+    fieldsets = (
+        ("Información general", {
+            "fields": (
+                "store_name",
+                "contact_email",
+                "phone",
+            )
+        }),
+        ("Envíos", {
+            "fields": (
+                "free_shipping_from",
+                "shipping_cost",
+            )
+        }),
+        ("Impuestos", {
+            "fields": (
+                "vat_percentage",
+            )
+        }),
+    )
