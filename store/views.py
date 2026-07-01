@@ -81,11 +81,23 @@ def catalog(request):
 def product_detail(request, slug):
     product = get_object_or_404(
         Product.objects
-        .select_related("category", "category__parent", "brand", "supplier")
+        .select_related(
+            "category",
+            "category__parent",
+            "brand",
+            "supplier",
+        )
         .prefetch_related("variants"),
         slug=slug,
         active=True,
     )
+
+    variants = (
+        product.variants
+        .filter(active=True)
+        .order_by("price")
+    )
+
     related = (
         Product.objects
         .filter(category=product.category, active=True)
@@ -93,10 +105,15 @@ def product_detail(request, slug):
         .select_related("brand")
         .prefetch_related("variants")[:4]
     )
+
     return render(
         request,
         "store/product_detail.html",
-        {"product": product, "related": related},
+        {
+            "product": product,
+            "variants": variants,
+            "related": related,
+        },
     )
 
 

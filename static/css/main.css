@@ -110,4 +110,56 @@
     background:var(--ink);
     transform:scale(1.08);
 }.benefits{display:grid;grid-template-columns:repeat(3,1fr);gap:50px;padding:85px max(6vw,28px);background:var(--ink);color:var(--white)}.benefits span{color:var(--lime);font-weight:800}.benefits h3{font:800 21px Manrope}.benefits p{color:#b8c8c1}.page-title{text-align:center;padding:70px 25px 45px;background:var(--cream)}.page-title h1{font-size:58px;margin:10px}.page-title p{color:var(--muted)}.catalog-layout{display:grid;grid-template-columns:220px 1fr;gap:50px;padding:60px max(6vw,28px)}.catalog-layout aside{display:flex;flex-direction:column;gap:5px}.catalog-layout aside a{padding:9px 12px;border-radius:6px;color:var(--muted)}.catalog-layout aside a.active{background:var(--cream);color:var(--green);font-weight:700}.result-bar{border-bottom:1px solid var(--line);margin-bottom:24px}.empty-state{grid-column:1/-1;text-align:center;padding:60px;background:var(--cream);border-radius:12px}.product-detail{display:grid;grid-template-columns:1fr 1fr;gap:7vw;padding:70px max(7vw,28px)}.detail-image{min-height:520px;background:var(--cream);display:grid;place-items:center;border-radius:14px;font-size:160px}.detail-image img{width:100%;height:100%;object-fit:contain}.product-detail h1{font-size:52px}.sku{color:var(--muted)}.detail-description{font-size:17px;color:var(--muted);margin:30px 0}.detail-price{font:800 32px Manrope;margin-bottom:25px}.detail-price del{font-size:17px;color:var(--muted)}.detail-list{padding:25px 0 0;list-style:none;color:var(--muted)}.detail-list li{padding:8px 0;border-bottom:1px solid var(--line)}.cart-page{display:grid;grid-template-columns:1fr 360px;gap:50px;padding:60px max(7vw,28px);min-height:450px}.cart-item{display:grid;grid-template-columns:90px 1fr auto auto;align-items:center;gap:20px;border-bottom:1px solid var(--line);padding:18px 0}.mini-image{height:80px;background:var(--cream);display:grid;place-items:center;border-radius:7px;font-size:32px}.cart-item h3,.cart-item p{margin:2px}.cart-item>a{color:var(--danger)}.summary{background:var(--cream);padding:28px;border-radius:12px}.summary p{display:flex;justify-content:space-between;gap:15px}.summary .total{font-size:20px}.summary .button{width:100%;margin:15px 0}.summary small{color:var(--muted)}footer{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:40px;padding:60px max(6vw,28px);background:var(--footer);color:#fff}footer>div{display:flex;flex-direction:column;gap:10px}footer p,footer a{color:#b8c8c1}.logo-light{color:#fff}.logo-light span{color:#16332b}
+.variant-selector{
+    margin:32px 0;
+}
+
+.variant-selector h3{
+    margin-bottom:14px;
+    font:700 18px Manrope;
+}
+
+.variant-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:12px;
+}
+
+.variant-card{
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:14px;
+    background:var(--surface);
+    transition:.2s;
+    cursor:pointer;
+}
+
+.variant-card:hover{
+    border-color:var(--green);
+    transform:translateY(-2px);
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+}
+
+.variant-name{
+    margin-bottom:8px;
+}
+
+.variant-price{
+    color:var(--green);
+    font-weight:700;
+}
+
+.variant-card input{
+    display:none;
+}
+
+.variant-card:has(input:checked){
+    border:2px solid var(--green);
+    background:var(--cream);
+    box-shadow:0 0 0 3px rgba(30,107,79,.12);
+}
+
+.variant-card:has(input:checked) .variant-price{
+    color:var(--ink);
+}
 @media(max-width:900px){.site-header{height:auto;padding:15px 20px;flex-wrap:wrap;gap:14px}.search{order:3;min-width:100%}.site-header nav a:not(.cart-link){display:none}.hero{grid-template-columns:1fr;padding-top:50px}.hero-visual{display:none}.proof{gap:20px}.category-grid,.benefits{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,1fr)}.catalog-layout{grid-template-columns:1fr}.catalog-layout aside{flex-direction:row;overflow:auto}.product-detail,.cart-page{grid-template-columns:1fr}.detail-image{min-height:350px}.summary{order:-1}footer{grid-template-columns:1fr 1fr}}@media(max-width:520px){.product-grid{grid-template-columns:1fr}.hero h1{font-size:43px}.proof{display:none}.section{padding:60px 20px}.product-image{height:300px}.cart-item{grid-template-columns:70px 1fr}.cart-item strong,.cart-item>a{grid-column:2}}
