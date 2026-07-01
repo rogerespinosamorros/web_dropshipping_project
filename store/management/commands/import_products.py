@@ -16,10 +16,14 @@ Lógica de agrupación de variantes:
 import csv
 from collections import defaultdict
 from decimal import Decimal, InvalidOperation
+from itertools import product
 from pathlib import Path
 
+from PIL.TiffTags import lookup
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.views import defaults
+from django.views import defaults
 
 from store.models import Brand, Category, Product, ProductVariant, Supplier
 
@@ -84,7 +88,18 @@ class Command(BaseCommand):
                 f"{stats['variants_updated']} actualizadas\n"
             )
         )
+    def _value(self, row, *keys, default=""):
+        """
+        Devuelve el primer valor existente entre varias posibles columnas.
 
+        Ejemplo:
+            self._value(row, "nombre", "name")
+        """
+        for key in keys:
+            value = row.get(key)
+            if value not in (None, ""):
+                return value
+        return default
     # ------------------------------------------------------------------
     # Carga y agrupación
     # ------------------------------------------------------------------
@@ -103,8 +118,16 @@ class Command(BaseCommand):
         variante_false = {}
 
         for row in rows:
-            nombre = row["nombre"].strip()
-            if row["variante"].strip().lower() == "true":
+
+            nombre = self._value(row, "nombre", "name").strip()
+
+            variante = (
+                self._value(row, "variante", "has_variants", default="false")
+                .strip()
+                .lower()
+            )
+
+            if variante == "true":
                 variante_true[nombre].append(row)
             else:
                 variante_false[nombre] = row
@@ -227,20 +250,28 @@ class Command(BaseCommand):
             "pvp": pvp,
             "image_url": (row.get("imagen") or "").strip()[:500],
             "source_url": (row.get("url") or "").strip()[:500],
-            "hortitec_id": (row.get("id") or "").strip(),
+            "hortitec_id": hortitec_id,
             "has_variants": False,
             "featured": self._flag(row.get("featured")),
             "outlet": self._flag(row.get("outlet")),
             "active": self._flag(row.get("disponible")),
         }
-        # Usamos el SKU como identificador único
-        sku = row["sku"].strip()
+        # Usamos el hortitec_id como identificador único
+        slug = self._unique_slug_for(row["nombre"].strip())
+        hortitec_id = (row.get("id") or "").strip()
+
+        lookup = {}
+
+        if hortitec_id:
+            lookup["hortitec_id"] = hortitec_id
+        else:
+            lookup["slug"] = slug
+
         _, created = Product.objects.update_or_create(
-            slug=self._unique_slug_for(row["nombre"].strip()),
+            **lookup,
             defaults=defaults,
         )
-        # Sincronizamos el slug con el SKU para búsquedas rápidas no hay conflicto
-        # El identificador real de upsert es el nombre (slug derivado)
+        # El producto se sincroniza utilizando el identificador estable de Hortitec.
         return created
 
     def _upsert_product_with_variants(self, nombre, first_row, category, brand, supplier):
@@ -249,8 +280,17 @@ class Command(BaseCommand):
         pvp = self._optional_money(first_row.get("pvp"))
         slug = self._unique_slug_for(nombre)
 
+        hortitec_id = (first_row.get("id") or "").strip()
+
+        lookup = {}
+
+        if hortitec_id:
+            lookup["hortitec_id"] = hortitec_id
+        else:
+            lookup["slug"] = slug
+
         product, created = Product.objects.update_or_create(
-            slug=slug,
+            **lookup,
             defaults={
                 "name": nombre,
                 "category": category,
@@ -260,13 +300,14 @@ class Command(BaseCommand):
                 "pvp": pvp,
                 "image_url": (first_row.get("imagen") or "").strip()[:500],
                 "source_url": (first_row.get("url") or "").strip()[:500],
-                "hortitec_id": (first_row.get("id") or "").strip(),
+                "hortitec_id": hortitec_id,
                 "has_variants": True,
                 "featured": self._flag(first_row.get("featured")),
                 "outlet": self._flag(first_row.get("outlet")),
                 "active": self._flag(first_row.get("disponible")),
             },
         )
+
         return product, created
 
     def _upsert_variant(self, product, row):
