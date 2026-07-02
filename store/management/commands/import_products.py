@@ -22,6 +22,7 @@ from pathlib import Path
 from PIL.TiffTags import lookup
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.db.models import options
 from django.views import defaults
 from django.views import defaults
 
@@ -74,7 +75,17 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("Productos eliminados."))
 
         with transaction.atomic():
-            supplier = Supplier.objects.get_or_create(name=options["supplier"])[0]
+
+            supplier = Supplier.objects.get_or_create(
+                name=options["supplier"]
+            )[0]
+
+            # Sincronización:
+            # Todos los productos de este proveedor pasan a inactivos.
+            Product.objects.filter(
+                supplier=supplier
+            ).update(active=False)
+
             stats = self._import(groups, supplier)
 
         self.stdout.write(
@@ -161,9 +172,28 @@ class Command(BaseCommand):
 
         # Productos simples
         for row in groups["simple"]:
-            category = self._get_or_create_category(row["categoria"], category_cache, stats)
-            brand = self._get_or_create_brand(row.get("fabricante", ""), brand_cache, stats)
-            created = self._upsert_simple_product(row, category, brand, supplier)
+            category = self._get_or_create_category(
+                row["categoria"],
+                category_cache,
+                stats,
+            )
+
+            brand = self._get_or_create_brand(
+                row.get("fabricante", ""),
+                brand_cache,
+                stats,
+            )
+
+            created = self._upsert_simple_product(
+                row,
+                category,
+                brand,
+                supplier,
+            )
+
+            if created is None:
+                continue
+
             if created:
                 stats["products_created"] += 1
             else:
@@ -171,11 +201,29 @@ class Command(BaseCommand):
 
         # Productos con variantes
         for nombre, rows in groups["with_variants"].items():
-            # Usar la categoría y marca de la primera fila del grupo
+
             first = rows[0]
-            category = self._get_or_create_category(first["categoria"], category_cache, stats)
-            brand = self._get_or_create_brand(first.get("fabricante", ""), brand_cache, stats)
-            product, p_created = self._upsert_product_with_variants(nombre, first, category, brand, supplier)
+
+            category = self._get_or_create_category(
+                first["categoria"],
+                category_cache,
+                stats,
+            )
+
+            brand = self._get_or_create_brand(
+                first.get("fabricante", ""),
+                brand_cache,
+                stats,
+            )
+
+            product, p_created = self._upsert_product_with_variants(
+                nombre,
+                first,
+                category,
+                brand,
+            supplier,
+            )
+
             if p_created:
                 stats["products_created"] += 1
             else:
@@ -183,6 +231,7 @@ class Command(BaseCommand):
 
             for row in rows:
                 v_created = self._upsert_variant(product, row)
+
                 if v_created:
                     stats["variants_created"] += 1
                 else:
@@ -239,10 +288,24 @@ class Command(BaseCommand):
 
     def _upsert_simple_product(self, row, category, brand, supplier):
         """Crea o actualiza un Product sin variantes. Devuelve True si fue creado."""
+        name = (row.get("nombre") or "").strip()
+
+        if not name:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Producto ignorado (SKU {row.get('sku')}): nombre vacío."
+                )
+            )
+            return None
+
         price = self._money(row.get("precio", "0"))
         pvp = self._optional_money(row.get("pvp"))
+
+        # Usamos el hortitec_id como identificador único
+        slug = self._unique_slug_for(name)
+        hortitec_id = (row.get("id") or "").strip()
         defaults = {
-            "name": row["nombre"].strip(),
+            "name": name,
             "category": category,
             "brand": brand,
             "supplier": supplier,
@@ -254,11 +317,9 @@ class Command(BaseCommand):
             "has_variants": False,
             "featured": self._flag(row.get("featured")),
             "outlet": self._flag(row.get("outlet")),
-            "active": self._flag(row.get("disponible")),
+            "active": True,
         }
-        # Usamos el hortitec_id como identificador único
-        slug = self._unique_slug_for(row["nombre"].strip())
-        hortitec_id = (row.get("id") or "").strip()
+        
 
         lookup = {}
 
@@ -266,6 +327,12 @@ class Command(BaseCommand):
             lookup["hortitec_id"] = hortitec_id
         else:
             lookup["slug"] = slug
+
+        if row["nombre"] == "Auto mimosa punch":
+            print("DEBUG SIMPLE")
+            print("disponible:", repr(row.get("disponible")))
+            print("flag:", self._flag(row.get("disponible")))
+            print("defaults active:", defaults["active"])
 
         _, created = Product.objects.update_or_create(
             **lookup,
@@ -276,6 +343,16 @@ class Command(BaseCommand):
 
     def _upsert_product_with_variants(self, nombre, first_row, category, brand, supplier):
         """Crea o actualiza el Product padre de un grupo de variantes."""
+        nombre = (nombre or "").strip()
+
+        if not nombre:
+            self.stdout.write(
+                self.style.WARNING(
+                    "Grupo de variantes ignorado: nombre vacío."
+                )
+            )
+            return None, None
+        
         price = self._money(first_row.get("precio", "0"))
         pvp = self._optional_money(first_row.get("pvp"))
         slug = self._unique_slug_for(nombre)
@@ -288,6 +365,8 @@ class Command(BaseCommand):
             lookup["hortitec_id"] = hortitec_id
         else:
             lookup["slug"] = slug
+
+        
 
         product, created = Product.objects.update_or_create(
             **lookup,
@@ -304,7 +383,7 @@ class Command(BaseCommand):
                 "has_variants": True,
                 "featured": self._flag(first_row.get("featured")),
                 "outlet": self._flag(first_row.get("outlet")),
-                "active": self._flag(first_row.get("disponible")),
+                "active": True,
             },
         )
 
