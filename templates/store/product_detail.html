@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}
 {{ product.name }} · Cultiva
@@ -43,21 +44,32 @@
 
         <h1>{{ product.name }}</h1>
 
-        <p class="sku">
-            Referencia: {{ product.sku }}
-        </p>
+        
 
         <div class="detail-price">
 
-            <strong>{{ product.display_price }} €</strong>
+    <strong id="product-price">
+        {{ product.display_price }} €
+    </strong>
 
-            {% if product.has_discount %}
-                <del>{{ product.compare_at_price }} €</del>
-            {% endif %}
+    {% if product.has_discount %}
+        <del>{{ product.compare_at_price }} €</del>
+    {% endif %}
 
-            <small>IVA incluido</small>
+    <small>IVA incluido</small>
 
-        </div>
+</div>
+
+<p class="sku">
+    Referencia:
+    <span id="product-sku">
+        {{ product.sku }}
+    </span>
+</p>
+
+<p id="product-stock" class="product-stock">
+    Disponible
+</p>
 
         {% if product.description %}
             <p class="detail-description">
@@ -70,6 +82,49 @@
             action="{% url 'store:add_to_cart' product.id %}">
 
             {% csrf_token %}
+
+            {% if variants %}
+
+            <div class="variant-selector">
+
+                <h3>Opciones disponibles</h3>
+
+                <div class="variant-grid">
+
+                    {% for variant in variants %}
+
+    <label class="variant-card" data-id="{{ variant.id }}" data-price="{{ variant.display_price }}"
+        data-sku="{{ variant.sku }}" data-stock="{{ variant.stock|yesno:'En stock,Sin stock' }}"
+        data-image="{{ variant.image_url }}">
+                        <input
+                            type="radio"
+                            name="variant_id"
+                            value="{{ variant.id }}"
+                            {% if forloop.first %}checked{% endif %}>
+
+                        <div class="variant-name">
+
+                            {% for key, value in variant.display_attributes %}
+                                <strong>{{ value }}</strong>
+                            {% empty %}
+                                <strong>{{ variant.sku }}</strong>
+                            {% endfor %}
+
+                        </div>
+
+                        <div class="variant-price">
+                            {{ variant.display_price }} €
+                        </div>
+
+                    </label>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+            {% endif %}
 
             <button class="button" type="submit">
                 🛒 Añadir al carrito
@@ -108,4 +163,7 @@
 
 {% endif %}
 
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'js/product.js' %}"></script>
 {% endblock %}

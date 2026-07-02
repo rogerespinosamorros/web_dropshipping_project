@@ -195,6 +195,13 @@ class ProductVariant(models.Model):
         return self.pvp and self.pvp > self.price
 
     @property
+    def display_price(self):
+        """
+        Devuelve el precio que se mostrará al cliente.
+        """
+        return self.pvp or self.price
+
+    @property
     def display_attributes(self):
         """Devuelve los atributos como lista de (clave_legible, valor)."""
         return [(k.replace("-", " ").title(), v) for k, v in self.attributes.items()]
