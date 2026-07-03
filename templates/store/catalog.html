@@ -13,6 +13,66 @@
     <div class="product-grid">
       {% for product in products %}{% include "store/_product_card.html" %}{% empty %}<div class="empty-state">No hay productos que coincidan con la búsqueda.</div>{% endfor %}
     </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+
+{% if page_obj.paginator.num_pages > 1 %}
+
+<nav class="pagination">
+
+    {% if page_obj.has_previous %}
+        <a href="?{{ querystring }}{% if querystring %}&{% endif %}page={{ page_obj.previous_page_number }}">
+            ← Anterior
+        </a>
+    {% endif %}
+
+    {# Primera página #}
+    {% if page_obj.number > 4 %}
+        <a href="?{{ querystring }}{% if querystring %}&{% endif %}page=1">1</a>
+
+        {% if page_obj.number > 5 %}
+            <span class="dots">…</span>
+        {% endif %}
+    {% endif %}
+
+    {# Páginas alrededor de la actual #}
+    {% for num in page_obj.paginator.page_range %}
+
+        {% if num >= page_obj.number|add:"-3" and num <= page_obj.number|add:"3" %}
+
+            {% if page_obj.number == num %}
+                <span class="current">{{ num }}</span>
+            {% else %}
+                <a href="?{{ querystring }}{% if querystring %}&{% endif %}page={{ num }}">{{ num }}</a>
+            {% endif %}
+
+        {% endif %}
+
+    {% endfor %}
+
+    {# Última página #}
+    {% if page_obj.number < page_obj.paginator.num_pages|add:"-3" %}
+
+        {% if page_obj.number < page_obj.paginator.num_pages|add:"-4" %}
+            <span class="dots">…</span>
+        {% endif %}
+
+        <a href="?{{ querystring }}{% if querystring %}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+            {{ page_obj.paginator.num_pages }}
+        </a>
+
+    {% endif %}
+
+    {% if page_obj.has_next %}
+        <a href="?{{ querystring }}{% if querystring %}&{% endif %}page={{ page_obj.next_page_number }}">
+            Siguiente →
+        </a>
+    {% endif %}
+
+</nav>
+
+{% endif %}
+
+{% endif %}
   </div>
 </section>
 {% endblock %}

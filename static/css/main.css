@@ -162,4 +162,46 @@
 .variant-card:has(input:checked) .variant-price{
     color:var(--ink);
 }
+
+.pagination{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    gap:10px;
+    margin:50px 0;
+    flex-wrap:wrap;
+}
+
+.pagination a,
+.pagination span{
+    min-width:42px;
+    height:42px;
+    padding:0 14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:var(--surface);
+    transition:.2s;
+}
+
+.pagination a:hover{
+    background:var(--green);
+    color:white;
+}
+
+.pagination .current{
+    background:var(--green);
+    color:white;
+    border-color:var(--green);
+    font-weight:700;
+}
+
+.pagination .dots{
+    padding:0 .5rem;
+    font-weight:700;
+    opacity:.7;
+}
+
 @media(max-width:900px){.site-header{height:auto;padding:15px 20px;flex-wrap:wrap;gap:14px}.search{order:3;min-width:100%}.site-header nav a:not(.cart-link){display:none}.hero{grid-template-columns:1fr;padding-top:50px}.hero-visual{display:none}.proof{gap:20px}.category-grid,.benefits{grid-template-columns:1fr}.product-grid{grid-template-columns:repeat(2,1fr)}.catalog-layout{grid-template-columns:1fr}.catalog-layout aside{flex-direction:row;overflow:auto}.product-detail,.cart-page{grid-template-columns:1fr}.detail-image{min-height:350px}.summary{order:-1}footer{grid-template-columns:1fr 1fr}}@media(max-width:520px){.product-grid{grid-template-columns:1fr}.hero h1{font-size:43px}.proof{display:none}.section{padding:60px 20px}.product-image{height:300px}.cart-item{grid-template-columns:70px 1fr}.cart-item strong,.cart-item>a{grid-column:2}}

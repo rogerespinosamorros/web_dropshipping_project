@@ -1,8 +1,12 @@
 from decimal import Decimal
-
+from django.core import paginator
+from django.core.paginator import Paginator
 from django.contrib import messages
 from django.db.models import Q
+from django.http import request
+from django.http import request
 from django.shortcuts import get_object_or_404, redirect, render
+from urllib.parse import urlencode
 
 from .models import Category, Product, ProductVariant
 
@@ -64,16 +68,35 @@ def catalog(request):
     # Categorías padre para el menú lateral
     categories = Category.objects.filter(parent=None).prefetch_related("children")
 
+    # Paginación
+    paginator = Paginator(products, 24)
+
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    categories = (
+    Category.objects
+        .filter(parent=None)
+        .prefetch_related("children")
+    )
+
+    params = request.GET.copy()
+    params.pop("page", None)
+
+    querystring = urlencode(params)
+
     return render(
         request,
         "store/catalog.html",
         {
-            "products": products,
+            "products": page_obj,
             "categories": categories,
             "query": query,
             "selected_category": category_slug,
             "min_price": min_price,
             "max_price": max_price,
+            "page_obj": page_obj,
+            "querystring": querystring,
         },
     )
 
