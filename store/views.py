@@ -2,13 +2,11 @@ from decimal import Decimal
 from django.core import paginator
 from django.core.paginator import Paginator
 from django.contrib import messages
-from django.db.models import Q
-from django.http import request
+from django.db.models import Count, Q
 from django.http import request
 from django.shortcuts import get_object_or_404, redirect, render
 from urllib.parse import urlencode
-
-from .models import Category, Product, ProductVariant
+from .models import Category, Product, ProductVariant, Brand
 
 
 def home(request):
@@ -39,6 +37,8 @@ def catalog(request):
     category_slug = request.GET.get("categoria", "").strip()
     min_price = request.GET.get("precio_min", "").strip()
     max_price = request.GET.get("precio_max", "").strip()
+    sort = request.GET.get("sort", "").strip()
+    brand_slug = request.GET.get("marca", "").strip()
 
     if query:
         products = products.filter(
@@ -53,6 +53,9 @@ def catalog(request):
             Q(category__slug=category_slug) | Q(category__parent__slug=category_slug)
         )
 
+    if brand_slug:
+        products = products.filter(brand__slug=brand_slug)
+
     if min_price:
         try:
             products = products.filter(price__gte=Decimal(min_price))
@@ -65,6 +68,23 @@ def catalog(request):
         except Exception:
             pass
 
+    # Ordenación
+    if sort == "price_asc":
+        products = products.order_by("price", "name")
+
+    elif sort == "price_desc":
+        products = products.order_by("-price", "name")
+
+    elif sort == "name_asc":
+        products = products.order_by("name")
+
+    elif sort == "name_desc":
+        products = products.order_by("-name")
+
+    else:
+    # Orden por defecto
+        products = products.order_by("name")
+
     # Categorías padre para el menú lateral
     categories = Category.objects.filter(parent=None).prefetch_related("children")
 
@@ -76,14 +96,34 @@ def catalog(request):
 
     categories = (
     Category.objects
-        .filter(parent=None)
-        .prefetch_related("children")
+    .filter(parent=None)
+    .annotate(
+        product_count=Count(
+            "products",
+            filter=Q(products__active=True),
+            distinct=True,
+        )
     )
+    .prefetch_related("children")
+)
 
     params = request.GET.copy()
     params.pop("page", None)
 
     querystring = urlencode(params)
+
+    brands = (
+    Brand.objects
+    .annotate(
+        product_count=Count(
+            "products",
+            filter=Q(products__active=True),
+            distinct=True,
+        )
+    )
+    .filter(product_count__gt=0)
+    .order_by("name")
+)
 
     return render(
         request,
@@ -96,7 +136,10 @@ def catalog(request):
             "min_price": min_price,
             "max_price": max_price,
             "page_obj": page_obj,
+            "sort": sort,
             "querystring": querystring,
+            "brands": brands,
+            "selected_brand": brand_slug,
         },
     )
 

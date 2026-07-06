@@ -3,19 +3,165 @@
 {% block content %}
 <section class="page-title"><span class="eyebrow">Cultiva a tu manera</span><h1>Catálogo</h1><p>Productos fiables, explicados con claridad.</p></section>
 <section class="catalog-layout">
-  <aside>
-    <h3>Categorías</h3>
-    <a class="{% if not selected_category %}active{% endif %}" href="{% url 'store:catalog' %}{% if query %}?q={{ query }}{% endif %}">Todas</a>
-    {% for category in categories %}<a class="{% if selected_category == category.slug %}active{% endif %}" href="?categoria={{ category.slug }}{% if query %}&q={{ query }}{% endif %}">{{ category.name }}</a>{% endfor %}
-  </aside>
+  <aside class="catalog-sidebar">
+
+    <section class="filter-section">
+
+        <h3>Categorías</h3>
+        <input
+    type="search"
+    id="category-filter"
+    class="sidebar-search"
+    placeholder="Buscar categoría...">
+        <a
+    class="category-link {% if not selected_category %}active{% endif %}"
+            href="{% url 'store:catalog' %}">
+            Todas
+        </a>
+
+        {% for category in categories %}
+
+<div class="category-group filter-group">
+                <a
+    class="category-link {% if selected_category == category.slug %}active{% endif %}"
+                    href="?categoria={{ category.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+                    {{ category.name }}
+<span class="count">
+    {{ category.product_count }}
+</span>
+                </a>
+
+                {% if category.children.all %}
+
+                    <div class="subcategory-list">
+
+                        {% for child in category.children.all %}
+
+                            <a
+    class="category-link {% if selected_category == child.slug %}active{% endif %}"
+                                href="?categoria={{ child.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+                                {{ child.name }}
+                            </a>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        {% endfor %}
+
+    </section>
+
+
+    <section class="filter-section">
+
+        <h3>Marcas</h3>
+        <input
+    type="search"
+    id="brand-filter"
+    class="sidebar-search"
+    placeholder="Buscar marca...">
+        <a
+    class="brand-link {% if not selected_brand %}active{% endif %}"
+            href="?{% if selected_category %}categoria={{ selected_category }}&{% endif %}{% if query %}q={{ query }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}">
+            Todas
+        </a>
+
+        <div class="brand-list">
+
+            {% for brand in brands %}
+
+                <a
+    class="brand-link {% if selected_brand == brand.slug %}active{% endif %}"
+                    href="?marca={{ brand.slug }}{% if selected_category %}&categoria={{ selected_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+                    {{ brand.name }}
+<span class="count">
+    {{ brand.product_count }}
+</span>
+                </a>
+
+            {% endfor %}
+
+        </div>
+
+    </section>
+
+</aside>
   <div>
-    <div class="result-bar"><p><b>{{ products.count }}</b> productos{% if query %} para “{{ query }}”{% endif %}</p></div>
+    <div class="result-bar">
+
+    <p>
+        <b>{{ page_obj.paginator.count }}</b> productos
+
+        {% if query %}
+            para "<strong>{{ query }}</strong>"
+        {% endif %}
+    </p>
+
+    <form method="get" class="sort-form">
+
+        {% if query %}
+            <input type="hidden" name="q" value="{{ query }}">
+        {% endif %}
+
+        {% if selected_category %}
+            <input type="hidden" name="categoria" value="{{ selected_category }}">
+        {% endif %}
+
+        {% if min_price %}
+            <input type="hidden" name="precio_min" value="{{ min_price }}">
+        {% endif %}
+
+        {% if max_price %}
+            <input type="hidden" name="precio_max" value="{{ max_price }}">
+        {% endif %}
+
+        <label for="sort">Ordenar por</label>
+
+        <select
+            id="sort"
+            name="sort"
+            onchange="this.form.submit()">
+
+            <option value=""
+                {% if not sort %}selected{% endif %}>
+                Nombre (A-Z)
+            </option>
+
+            <option value="price_asc"
+                {% if sort == "price_asc" %}selected{% endif %}>
+                Precio ↑
+            </option>
+
+            <option value="price_desc"
+                {% if sort == "price_desc" %}selected{% endif %}>
+                Precio ↓
+            </option>
+
+            <option value="name_asc"
+                {% if sort == "name_asc" %}selected{% endif %}>
+                Nombre A-Z
+            </option>
+
+            <option value="name_desc"
+                {% if sort == "name_desc" %}selected{% endif %}>
+                Nombre Z-A
+            </option>
+
+        </select>
+
+    </form>
+
+</div>
     <div class="product-grid">
       {% for product in products %}{% include "store/_product_card.html" %}{% empty %}<div class="empty-state">No hay productos que coincidan con la búsqueda.</div>{% endfor %}
     </div>
     {% if page_obj.paginator.num_pages > 1 %}
 
-{% if page_obj.paginator.num_pages > 1 %}
+
 
 <nav class="pagination">
 
@@ -72,7 +218,7 @@
 
 {% endif %}
 
-{% endif %}
+
   </div>
 </section>
 {% endblock %}
