@@ -123,8 +123,7 @@
                     data-sku="{{ variant.sku }}"
                     data-stock="{{ variant.stock|yesno:'En stock,Sin stock' }}"
                     data-image="{{ variant.image_url }}"
-                    data-attributes='{{ variant.attributes|safe }}'>
-
+                    data-attributes='{{ variant.attributes_json }}'>
                     <input
                         type="radio"
                         name="variant_id"
@@ -132,14 +131,8 @@
                         {% if forloop.first %}checked{% endif %}>
 
                     <div class="variant-name">
-
-                        {% for key, value in variant.display_attributes %}
-                            <strong>{{ value }}</strong>
-                        {% empty %}
-                            <strong>{{ variant.sku }}</strong>
-                        {% endfor %}
-
-                    </div>
+                        <strong>{{ variant.display_name }}</strong>
+                    </div>  
 
                     <div class="variant-price">
                         {{ variant.display_price }} €
