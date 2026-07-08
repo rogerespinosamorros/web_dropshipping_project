@@ -1,6 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+import json
 
 
 class Category(models.Model):
@@ -193,6 +194,34 @@ class ProductVariant(models.Model):
     @property
     def has_discount(self):
         return self.pvp and self.pvp > self.price
+
+    @property
+    def attributes_json(self):
+        return json.dumps(self.attributes, ensure_ascii=False)
+
+    @property
+    def display_name(self):
+
+        priority = [
+            "capacidad",
+            "unidades-semillas",
+            "unidades",
+            "volumen",
+            "tamaño",
+            "medida",
+            "color",
+            "modelo",
+        ]
+
+        for key in priority:
+            value = self.attributes.get(key)
+            if value:
+                return value
+
+        if self.attributes:
+            return " · ".join(self.attributes.values())
+
+        return self.sku
 
     @property
     def display_price(self):

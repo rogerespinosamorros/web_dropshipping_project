@@ -407,8 +407,8 @@ class Command(BaseCommand):
                 "image_url": (row.get("imagen") or "").strip()[:500],
                 "stock": self._flag(row.get("stock")),
                 "stock_level": (row.get("stock_level") or "").strip(),
-                "active": self._flag(row.get("disponible")),
-            },
+                "active": True,
+                },
         )
         return created
 
