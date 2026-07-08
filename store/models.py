@@ -1,6 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+from django.contrib.auth.models import User
 import json
 
 
@@ -238,6 +239,103 @@ class ProductVariant(models.Model):
     def __str__(self):
         attrs = ", ".join(f"{k}: {v}" for k, v in self.attributes.items())
         return f"{self.product.name} — {attrs}" if attrs else f"{self.product.name} ({self.sku})"
+
+class Order(models.Model):
+
+    STATUS_CHOICES = [
+        ("pending", "Pendiente"),
+        ("confirmed", "Confirmado"),
+        ("shipped", "Enviado"),
+        ("completed", "Completado"),
+        ("cancelled", "Cancelado"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders",
+    )
+
+    customer_name = models.CharField(max_length=200)
+    customer_email = models.EmailField()
+    customer_phone = models.CharField(max_length=30, blank=True)
+
+    shipping_address = models.CharField(max_length=255)
+    shipping_city = models.CharField(max_length=120)
+    shipping_postcode = models.CharField(max_length=20)
+    shipping_country = models.CharField(max_length=80, default="España")
+
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=10, decimal_places=2)
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    
+    class Meta:
+        verbose_name = "pedido"
+        verbose_name_plural = "pedidos"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Pedido #{self.id}"
+
+    @property
+    def total_items(self):
+        return sum(item.quantity for item in self.items.all())
+
+
+class OrderItem(models.Model):
+
+    order = models.ForeignKey(
+        Order,
+        related_name="items",
+        on_delete=models.CASCADE,
+    )
+
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.PROTECT,
+    )
+
+    variant = models.ForeignKey(
+        ProductVariant,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+    )
+
+    name = models.CharField(max_length=255)
+
+    sku = models.CharField(max_length=60)
+
+    unit_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+    )
+
+    quantity = models.PositiveIntegerField()
+
+    line_total = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+    )
+
+    class Meta:
+        verbose_name = "línea de pedido"
+        verbose_name_plural = "líneas de pedido"
+
+    def __str__(self):
+        return self.name
+
 
 class ShopSettings(models.Model):
     store_name = models.CharField(max_length=120, default="Mi Tienda")

@@ -799,6 +799,90 @@ footer a {
 
 }
 
+.checkout-layout{
+
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:40px;
+    align-items:start;
+
+}
+
+.checkout-form,
+.checkout-summary{
+
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:28px;
+
+}
+
+.checkout-form form{
+
+    display:grid;
+    gap:18px;
+
+}
+
+.form-group{
+
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+
+}
+
+.form-group input{
+
+    padding:12px 14px;
+
+    border:1px solid var(--line);
+
+    border-radius:10px;
+
+    font:inherit;
+
+}
+
+.summary-item{
+
+    display:grid;
+    grid-template-columns:1fr auto auto;
+    gap:16px;
+
+    padding:14px 0;
+
+}
+
+.summary-row{
+
+    display:flex;
+    justify-content:space-between;
+
+    margin-top:14px;
+
+}
+
+.summary-row.total{
+
+    margin-top:22px;
+
+    font-size:1.2rem;
+    font-weight:700;
+
+}
+
+@media (max-width:900px){
+
+    .checkout-layout{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
 @media(max-width:900px) {
     .site-header {
         height: auto;

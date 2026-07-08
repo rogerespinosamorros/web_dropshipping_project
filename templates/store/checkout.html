@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}
+Checkout · Cultiva
+{% endblock %}
+
+{% block content %}
+
+<section class="page-title">
+    <span class="eyebrow">Finalizar compra</span>
+    <h1>Checkout</h1>
+    <p>Solo queda un paso para completar tu pedido.</p>
+</section>
+
+<section class="checkout-layout">
+
+    <section class="checkout-form">
+
+        <h2>Datos de envío</h2>
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            {% for field in form %}
+
+                <div class="form-group">
+
+                    {{ field.label_tag }}
+
+                    {{ field }}
+
+                    {% if field.errors %}
+                        <small class="error">
+                            {{ field.errors|join:", " }}
+                        </small>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+            <button
+                class="button"
+                type="submit">
+
+                Confirmar pedido
+
+            </button>
+
+        </form>
+
+    </section>
+
+    <aside class="checkout-summary">
+
+        <h2>Resumen del pedido</h2>
+
+        {% for item in items %}
+
+            <div class="summary-item">
+
+                <div>
+
+                    <strong>{{ item.product.name }}</strong>
+
+                    {% if item.variant %}
+                        <small>{{ item.variant.display_name }}</small>
+                    {% endif %}
+
+                </div>
+
+                <span>x{{ item.qty }}</span>
+
+                <strong>{{ item.line_total }} €</strong>
+
+            </div>
+
+        {% endfor %}
+
+        <hr>
+
+        <div class="summary-row">
+            <span>Subtotal</span>
+            <strong>{{ subtotal }} €</strong>
+        </div>
+
+        <div class="summary-row">
+            <span>Envío</span>
+            <strong>{{ shipping }} €</strong>
+        </div>
+
+        <div class="summary-row total">
+            <span>Total</span>
+            <strong>{{ total }} €</strong>
+        </div>
+
+    </aside>
+
+</section>
+
+{% endblock %}
