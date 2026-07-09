@@ -12,9 +12,10 @@
       <div>
         <p class="product-category">{{ item.product.category.name }}</p>
         <h3>{{ item.product.name }}</h3>
-        <p>Cantidad: {{ item.quantity }}</p>
-      </div><strong>{{ item.line_total }} €</strong><a
-        href="{% url "store:checkout" %}">Eliminar</a>
+        <p>Cantidad: {{ item.qty }}</p>
+      </div><strong>{{ item.line_total }} €</strong><a href="{% url 'store:remove_from_cart' item.key %}">
+        Eliminar
+      </a>
     </article>
     {% empty %}<div class="empty-state">
       <h2>Tu carrito está vacío</h2>
@@ -27,8 +28,12 @@
     <p><span>Subtotal</span><strong>{{ subtotal }} €</strong></p>
     <p><span>Envío</span><strong>Calculado después</strong></p>
     <hr>
-    <p class="total"><span>Total</span><strong>{{ subtotal }} €</strong></p><button class="button">Continuar
-      pedido</button><small>El checkout se conectará con la pasarela de pago elegida.</small>
+    <p class="total"><span>Total</span><strong>{{ subtotal }} €</strong></p><a class="button"
+      href="{% url 'store:checkout' %}">
+
+      Continuar pedido
+
+    </a><small>El checkout se conectará con la pasarela de pago elegida.</small>
   </aside>{% endif %}
 </section>
 {% endblock %}
