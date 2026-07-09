@@ -6,7 +6,8 @@ from django.db.models import Count, Q
 from django.http import request
 from django.shortcuts import get_object_or_404, redirect, render
 from urllib.parse import urlencode
-from .models import Category, Product, ProductVariant, Brand
+from .forms import CheckoutForm
+from .models import Category, Product, ProductVariant, Brand, Order, OrderItem
 
 
 def home(request):
@@ -307,3 +308,162 @@ def cart(request):
             "subtotal": subtotal,
         },
     )
+
+
+def checkout(request):
+
+    cart_data = request.session.get("cart", {})
+
+    if not cart_data:
+        messages.warning(request, "Tu carrito está vacío.")
+        return redirect("store:cart")
+
+    # Reutilizamos la misma lógica del carrito
+    valid_entries = [
+        entry for entry in cart_data.values()
+        if isinstance(entry, dict) and entry.get("product_id")
+    ]
+
+    product_ids = list({
+        entry["product_id"]
+        for entry in valid_entries
+    })
+
+    products = (
+        Product.objects
+        .filter(pk__in=product_ids, active=True)
+        .prefetch_related("variants")
+    )
+
+    products_by_id = {
+        product.id: product
+        for product in products
+    }
+
+    items = []
+    subtotal = Decimal("0")
+
+    for key, entry in cart_data.items():
+
+        if not isinstance(entry, dict):
+            continue
+
+        product = products_by_id.get(entry.get("product_id"))
+
+        if product is None:
+            continue
+
+        qty = entry.get("qty", 1)
+        variant = None
+
+        if entry.get("variant_id"):
+
+            variant = next(
+                (
+                    v for v in product.variants.all()
+                    if v.id == entry["variant_id"]
+                ),
+                None,
+            )
+
+            if variant is None:
+                continue
+
+            unit_price = variant.price
+
+        else:
+
+            unit_price = product.display_price
+
+        line_total = unit_price * qty
+        subtotal += line_total
+
+        items.append({
+            "product": product,
+            "variant": variant,
+            "qty": qty,
+            "line_total": line_total,
+        })
+
+    shipping = Decimal("0") if subtotal >= Decimal("75") else Decimal("5.95")
+    total = subtotal + shipping
+
+    if request.method == "POST":
+
+        form = CheckoutForm(request.POST)
+
+        if form.is_valid():
+
+            order = Order.objects.create(
+
+                user=request.user if request.user.is_authenticated else None,
+
+                customer_name=form.cleaned_data["customer_name"],
+                customer_email=form.cleaned_data["customer_email"],
+                customer_phone=form.cleaned_data["customer_phone"],
+
+                shipping_address=form.cleaned_data["shipping_address"],
+                shipping_city=form.cleaned_data["shipping_city"],
+                shipping_postcode=form.cleaned_data["shipping_postcode"],
+                shipping_country=form.cleaned_data["shipping_country"],
+
+                subtotal=subtotal,
+                shipping_cost=shipping,
+                total=total,
+            )
+
+            for item in items:
+
+                OrderItem.objects.create(
+
+                    order=order,
+
+                    product=item["product"],
+
+                    variant=item["variant"],
+
+                    name=item["product"].name,
+
+                    sku=(
+                        item["variant"].sku
+                        if item["variant"]
+                        else item["product"].hortitec_id
+                    ),
+
+                    unit_price=(
+                        item["variant"].price
+                        if item["variant"]
+                        else item["product"].display_price
+                    ),
+
+                    quantity=item["qty"],
+
+                    line_total=item["line_total"],
+
+                )
+
+            request.session["cart"] = {}
+
+            messages.success(
+                request,
+                "Pedido creado correctamente."
+            )
+
+            return redirect("store:cart")
+
+    else:
+
+        form = CheckoutForm()
+
+    return render(
+        request,
+        "store/checkout.html",
+        {
+            "form": form,
+            "items": items,
+            "subtotal": subtotal,
+            "shipping": shipping,
+            "total": total,
+        },
+    )
+    
