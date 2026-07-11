@@ -1,13 +1,14 @@
 from decimal import Decimal
-from django.core import paginator
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.db.models import Count, Q
+from django.db import transaction
 from django.http import request
 from django.shortcuts import get_object_or_404, redirect, render
 from urllib.parse import urlencode
 from .forms import CheckoutForm
 from .models import Category, Product, ProductVariant, Brand, Order, OrderItem
+from .emails import send_order_confirmation
 
 
 def home(request):
@@ -394,62 +395,70 @@ def checkout(request):
 
         if form.is_valid():
 
-            order = Order.objects.create(
+            with transaction.atomic():
 
-                user=request.user if request.user.is_authenticated else None,
+                order = Order.objects.create(
 
-                customer_name=form.cleaned_data["customer_name"],
-                customer_email=form.cleaned_data["customer_email"],
-                customer_phone=form.cleaned_data["customer_phone"],
+                    user=request.user if request.user.is_authenticated else None,
 
-                shipping_address=form.cleaned_data["shipping_address"],
-                shipping_city=form.cleaned_data["shipping_city"],
-                shipping_postcode=form.cleaned_data["shipping_postcode"],
-                shipping_country=form.cleaned_data["shipping_country"],
+                    customer_name=form.cleaned_data["customer_name"],
+                    customer_email=form.cleaned_data["customer_email"],
+                    customer_phone=form.cleaned_data["customer_phone"],
 
-                subtotal=subtotal,
-                shipping_cost=shipping,
-                total=total,
-            )
+                    shipping_address=form.cleaned_data["shipping_address"],
+                    shipping_city=form.cleaned_data["shipping_city"],
+                    shipping_postcode=form.cleaned_data["shipping_postcode"],
+                    shipping_country=form.cleaned_data["shipping_country"],
 
-            for item in items:
-
-                OrderItem.objects.create(
-
-                    order=order,
-
-                    product=item["product"],
-
-                    variant=item["variant"],
-
-                    name=item["product"].name,
-
-                    sku=(
-                        item["variant"].sku
-                        if item["variant"]
-                        else item["product"].hortitec_id
-                    ),
-
-                    unit_price=(
-                        item["variant"].price
-                        if item["variant"]
-                        else item["product"].display_price
-                    ),
-
-                    quantity=item["qty"],
-
-                    line_total=item["line_total"],
-
+                    subtotal=subtotal,
+                    shipping_cost=shipping,
+                    total=total,
                 )
 
+                for item in items:
+
+                    OrderItem.objects.create(
+
+                        order=order,
+
+                        product=item["product"],
+
+                        variant=item["variant"],
+
+                        name=item["product"].name,
+
+                        sku=(
+                            item["variant"].sku
+                            if item["variant"]
+                            else item["product"].hortitec_id
+                        ),
+
+                        unit_price=(
+                            item["variant"].price
+                            if item["variant"]
+                            else item["product"].display_price
+                        ),
+
+                        quantity=item["qty"],
+
+                        line_total=item["line_total"],
+
+                    )
+
             request.session["cart"] = {}
+            request.session.modified = True
+
+            send_order_confirmation(order)
 
             messages.success(
                 request,
                 "Pedido creado correctamente."
             )
 
-            return redirect("store:cart")
+            return redirect(
+                "store:order_success",
+                order_id=order.id,
+            )
 
     else:
 
@@ -467,3 +476,18 @@ def checkout(request):
         },
     )
     
+
+def order_success(request, order_id):
+
+    order = get_object_or_404(
+        Order,
+        pk=order_id,
+    )
+
+    return render(
+        request,
+        "store/order_success.html",
+        {
+            "order": order,
+        },
+    )  

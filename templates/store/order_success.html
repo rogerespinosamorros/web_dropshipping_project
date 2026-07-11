@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}
+Pedido realizado
+{% endblock %}
+
+{% block content %}
+
+<section class="section">
+
+    <div class="empty-state">
+
+        <h1>🎉 ¡Gracias por tu compra!</h1>
+
+        <p>
+
+            Hemos recibido correctamente tu pedido.
+
+        </p>
+
+        <p>
+
+            Número de pedido:
+
+            <strong>#{{ order.id }}</strong>
+
+        </p>
+
+        <p>
+
+            En breve recibirás un correo de confirmación.
+
+        </p>
+
+        <a
+            href="{% url 'store:catalog' %}"
+            class="button">
+
+            Seguir comprando
+
+        </a>
+
+    </div>
+
+</section>
+
+{% endblock %}

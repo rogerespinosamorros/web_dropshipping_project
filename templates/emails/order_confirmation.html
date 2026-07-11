@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pedido recibido</title>
+</head>
+
+<body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
+
+<tr>
+
+<td align="center">
+
+<table width="650" cellpadding="0" cellspacing="0"
+style="background:white;border-radius:10px;overflow:hidden;">
+
+<tr>
+
+<td
+style="background:#1d7f52;color:white;padding:28px;text-align:center;">
+
+<h1 style="margin:0;font-size:30px;">
+🌿 Cultiva
+</h1>
+
+<p style="margin-top:8px;">
+Gracias por confiar en nosotros
+</p>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="padding:35px;">
+
+<h2 style="margin-top:0;color:#1d7f52;">
+Pedido recibido correctamente
+</h2>
+
+<p>
+Hola <strong>{{ order.customer_name }}</strong>,
+</p>
+
+<p>
+Hemos recibido tu pedido y ya está siendo procesado.
+</p>
+
+<hr style="border:none;border-top:1px solid #dddddd;margin:30px 0;">
+
+<table width="100%">
+
+<tr>
+<td><strong>Pedido</strong></td>
+<td align="right">#{{ order.id }}</td>
+</tr>
+
+<tr>
+<td><strong>Fecha</strong></td>
+<td align="right">{{ order.created_at|date:"d/m/Y H:i" }}</td>
+</tr>
+
+</table>
+
+<hr style="border:none;border-top:1px solid #dddddd;margin:30px 0;">
+
+<h3 style="color:#1d7f52;">
+Productos
+</h3>
+
+<table
+width="100%"
+cellpadding="10"
+style="border-collapse:collapse;">
+
+<tr style="background:#f3f3f3;">
+
+<th align="left">
+Producto
+</th>
+
+<th align="center">
+Cantidad
+</th>
+
+<th align="right">
+Importe
+</th>
+
+</tr>
+
+{% for item in order.items.all %}
+
+<tr>
+
+<td>{{ item.name }}</td>
+
+<td align="center">
+{{ item.quantity }}
+</td>
+
+<td align="right">
+{{ item.line_total }} €
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+<hr style="border:none;border-top:1px solid #dddddd;margin:30px 0;">
+
+<table width="100%">
+
+<tr>
+
+<td>
+Subtotal
+</td>
+
+<td align="right">
+{{ order.subtotal }} €
+</td>
+
+</tr>
+
+<tr>
+
+<td>
+Envío
+</td>
+
+<td align="right">
+{{ order.shipping_cost }} €
+</td>
+
+</tr>
+
+<tr>
+
+<td style="font-size:20px;">
+<strong>Total</strong>
+</td>
+
+<td
+align="right"
+style="font-size:22px;color:#1d7f52;">
+
+<strong>{{ order.total }} €</strong>
+
+</td>
+
+</tr>
+
+</table>
+
+<hr style="border:none;border-top:1px solid #dddddd;margin:30px 0;">
+
+<h3 style="color:#1d7f52;">
+Dirección de envío
+</h3>
+
+<p style="line-height:1.8;">
+
+{{ order.shipping_address }}<br>
+
+{{ order.shipping_postcode }}
+{{ order.shipping_city }}<br>
+
+{{ order.shipping_country }}
+
+</p>
+
+<hr style="border:none;border-top:1px solid #dddddd;margin:30px 0;">
+
+<p style="text-align:center;color:#666;">
+
+Gracias por comprar en <strong>Cultiva</strong> 🌿
+
+</p>
+
+</td>
+
+</tr>
+
+</table>
+
+</td>
+
+</tr>
+
+</table>
+
+</body>
+
+</html>

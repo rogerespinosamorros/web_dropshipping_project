@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSettings
+from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSettings, Order, OrderItem
 
 
 @admin.register(Category)
@@ -36,6 +36,35 @@ class ProductVariantInline(admin.TabularInline):
     fields = ["sku", "attributes", "price", "pvp", "stock", "stock_level", "image_url", "active"]
     readonly_fields = ["sku", "hortitec_id"]
     show_change_link = True
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+    can_delete = False
+    show_change_link = True
+
+    fields = [
+        "product",
+        "variant",
+        "name",
+        "sku",
+        "quantity",
+        "unit_price",
+        "line_total",
+    ]
+
+    readonly_fields = [
+        "product",
+        "variant",
+        "name",
+        "sku",
+        "quantity",
+        "unit_price",
+        "line_total",
+    ]
+
+    def has_add_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Product)
@@ -126,3 +155,98 @@ class ShopSettingsAdmin(admin.ModelAdmin):
             )
         }),
     )
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+
+    list_display = [
+        "id",
+        "customer_name",
+        "customer_email",
+        "total",
+        "status",
+        "created_at",
+    ]
+
+    list_filter = [
+        "status",
+        "created_at",
+    ]
+
+    search_fields = [
+        "customer_name",
+        "customer_email",
+    ]
+
+    ordering = [
+        "-created_at",
+    ]
+
+    inlines = [OrderItemInline]
+
+    readonly_fields = [
+        "created_at",
+    ]
+
+    fieldsets = (
+        ("Cliente", {
+            "fields": (
+                "customer_name",
+                "customer_email",
+                "customer_phone",
+            )
+        }),
+
+        ("Dirección de envío", {
+            "fields": (
+                "shipping_address",
+                "shipping_city",
+                "shipping_postcode",
+                "shipping_country",
+            )
+        }),
+
+        ("Pedido", {
+            "fields": (
+                "subtotal",
+                "shipping_cost",
+                "total",
+                "status",
+            )
+        }),
+
+        ("Información", {
+            "fields": (
+                "created_at",
+            )
+        }),
+    )
+
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+
+    list_display = [
+        "order",
+        "name",
+        "sku",
+        "quantity",
+        "unit_price",
+        "line_total",
+    ]
+
+    list_filter = [
+        "order",
+    ]
+
+    search_fields = [
+        "name",
+        "sku",
+    ]
+
+    autocomplete_fields = [
+        "order",
+        "product",
+        "variant",
+    ]
