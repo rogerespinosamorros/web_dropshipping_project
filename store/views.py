@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 from .forms import CheckoutForm
 from .models import Category, Product, ProductVariant, Brand, Order, OrderItem
 from .emails import send_order_confirmation
+from .services.orders import create_order_from_checkout
 
 
 def home(request):
@@ -395,56 +396,15 @@ def checkout(request):
 
         if form.is_valid():
 
-            with transaction.atomic():
-
-                order = Order.objects.create(
-
-                    user=request.user if request.user.is_authenticated else None,
-
-                    customer_name=form.cleaned_data["customer_name"],
-                    customer_email=form.cleaned_data["customer_email"],
-                    customer_phone=form.cleaned_data["customer_phone"],
-
-                    shipping_address=form.cleaned_data["shipping_address"],
-                    shipping_city=form.cleaned_data["shipping_city"],
-                    shipping_postcode=form.cleaned_data["shipping_postcode"],
-                    shipping_country=form.cleaned_data["shipping_country"],
-
-                    subtotal=subtotal,
-                    shipping_cost=shipping,
-                    total=total,
-                )
-
-                for item in items:
-
-                    OrderItem.objects.create(
-
-                        order=order,
-
-                        product=item["product"],
-
-                        variant=item["variant"],
-
-                        name=item["product"].name,
-
-                        sku=(
-                            item["variant"].sku
-                            if item["variant"]
-                            else item["product"].hortitec_id
-                        ),
-
-                        unit_price=(
-                            item["variant"].price
-                            if item["variant"]
-                            else item["product"].display_price
-                        ),
-
-                        quantity=item["qty"],
-
-                        line_total=item["line_total"],
-
-                    )
-
+            order = create_order_from_checkout(
+                request=request,
+                form=form,
+                items=items,
+                subtotal=subtotal,
+                shipping=shipping,
+                total=total,
+            )
+            
             request.session["cart"] = {}
             request.session.modified = True
 

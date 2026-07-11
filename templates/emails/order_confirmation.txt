@@ -1,0 +1,27 @@
+Hola {{ order.customer_name }},
+
+Gracias por comprar en Cultiva.
+
+Hemos recibido correctamente tu pedido.
+
+Pedido #{{ order.id }}
+
+Fecha: {{ order.created_at|date:"d/m/Y H:i" }}
+
+Productos:
+
+{% for item in order.items.all %}
+- {{ item.quantity }} × {{ item.name }} ({{ item.line_total }} €)
+{% endfor %}
+
+Subtotal: {{ order.subtotal }} €
+Envío: {{ order.shipping_cost }} €
+Total: {{ order.total }} €
+
+Dirección de envío:
+
+{{ order.shipping_address }}
+{{ order.shipping_postcode }} {{ order.shipping_city }}
+{{ order.shipping_country }}
+
+Gracias por confiar en Cultiva.
