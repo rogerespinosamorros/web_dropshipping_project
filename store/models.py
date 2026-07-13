@@ -242,13 +242,19 @@ class ProductVariant(models.Model):
 
 class Order(models.Model):
 
-    STATUS_CHOICES = [
-        ("pending", "Pendiente"),
-        ("confirmed", "Confirmado"),
-        ("shipped", "Enviado"),
-        ("completed", "Completado"),
-        ("cancelled", "Cancelado"),
-    ]
+    class Status(models.TextChoices):
+
+        PENDING = "pending", "Pendiente"
+
+        CONFIRMED = "confirmed", "Confirmado"
+
+        PREPARING = "preparing", "Preparando"
+
+        SHIPPED = "shipped", "Enviado"
+
+        DELIVERED = "delivered", "Entregado"
+
+        CANCELLED = "cancelled", "Cancelado"
 
     user = models.ForeignKey(
         User,
@@ -272,9 +278,10 @@ class Order(models.Model):
     total = models.DecimalField(max_digits=10, decimal_places=2)
 
     status = models.CharField(
+        "Estado",
         max_length=20,
-        choices=STATUS_CHOICES,
-        default="pending",
+        choices=Status.choices,
+        default=Status.PENDING,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -287,6 +294,30 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Pedido #{self.id}"
+
+    def save(self, *args, **kwargs):
+
+        old_status = None
+
+        if self.pk:
+
+            old_status = (
+                Order.objects
+                .filter(pk=self.pk)
+                .values_list("status", flat=True)
+                .first()
+            )
+
+        super().save(*args, **kwargs)
+
+        if (
+            old_status is not None
+            and old_status != self.status
+        ):
+
+            from .emails import send_order_status_email
+
+            send_order_status_email(self)
 
     @property
     def total_items(self):

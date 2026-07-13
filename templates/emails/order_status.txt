@@ -1,0 +1,9 @@
+Hola {{ order.customer_name }},
+
+El estado de tu pedido #{{ order.id }} ha cambiado.
+
+Estado actual:
+
+{{ status_message }}
+
+Gracias por confiar en Cultiva.
