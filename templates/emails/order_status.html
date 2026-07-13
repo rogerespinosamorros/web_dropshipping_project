@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+</head>
+
+<body style="margin:0;padding:40px;background:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+
+<table width="600" align="center" cellpadding="0" cellspacing="0" style="background:white;border-radius:10px;">
+
+<tr>
+<td style="background:#1d7f52;color:white;padding:25px;text-align:center;">
+
+<h1 style="margin:0;">
+🌿 Cultiva
+</h1>
+
+</td>
+</tr>
+
+<tr>
+<td style="padding:35px;">
+
+<h2 style="color:#1d7f52;">
+Actualización de tu pedido
+</h2>
+
+<p>
+Hola <strong>{{ order.customer_name }}</strong>,
+</p>
+
+<p>
+El estado de tu pedido ha cambiado.
+</p>
+
+<p style="font-size:20px;font-weight:bold;color:#1d7f52;">
+{{ status_message }}
+</p>
+
+<p>
+Pedido #{{ order.id }}
+</p>
+
+<hr>
+
+<p>
+Gracias por confiar en Cultiva.
+</p>
+
+</td>
+</tr>
+
+</table>
+
+</body>
+
+</html>

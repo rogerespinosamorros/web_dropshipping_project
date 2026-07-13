@@ -10,6 +10,7 @@ from .forms import CheckoutForm
 from .models import Category, Product, ProductVariant, Brand, Order, OrderItem
 from .emails import send_order_confirmation
 from .services.orders import create_order_from_checkout
+from .services.cart import (build_cart, calculate_total,)
 
 
 def home(request):
@@ -314,81 +315,13 @@ def cart(request):
 
 def checkout(request):
 
-    cart_data = request.session.get("cart", {})
+    items, subtotal = build_cart(request)
 
-    if not cart_data:
+    if not items:
         messages.warning(request, "Tu carrito está vacío.")
         return redirect("store:cart")
 
-    # Reutilizamos la misma lógica del carrito
-    valid_entries = [
-        entry for entry in cart_data.values()
-        if isinstance(entry, dict) and entry.get("product_id")
-    ]
-
-    product_ids = list({
-        entry["product_id"]
-        for entry in valid_entries
-    })
-
-    products = (
-        Product.objects
-        .filter(pk__in=product_ids, active=True)
-        .prefetch_related("variants")
-    )
-
-    products_by_id = {
-        product.id: product
-        for product in products
-    }
-
-    items = []
-    subtotal = Decimal("0")
-
-    for key, entry in cart_data.items():
-
-        if not isinstance(entry, dict):
-            continue
-
-        product = products_by_id.get(entry.get("product_id"))
-
-        if product is None:
-            continue
-
-        qty = entry.get("qty", 1)
-        variant = None
-
-        if entry.get("variant_id"):
-
-            variant = next(
-                (
-                    v for v in product.variants.all()
-                    if v.id == entry["variant_id"]
-                ),
-                None,
-            )
-
-            if variant is None:
-                continue
-
-            unit_price = variant.price
-
-        else:
-
-            unit_price = product.display_price
-
-        line_total = unit_price * qty
-        subtotal += line_total
-
-        items.append({
-            "product": product,
-            "variant": variant,
-            "qty": qty,
-            "line_total": line_total,
-        })
-
-    shipping = Decimal("0") if subtotal >= Decimal("75") else Decimal("5.95")
-    total = subtotal + shipping
+    shipping = calculate_total(subtotal)
 
     if request.method == "POST":
 
@@ -404,7 +337,7 @@ def checkout(request):
                 shipping=shipping,
                 total=total,
             )
-            
+
             request.session["cart"] = {}
             request.session.modified = True
 
