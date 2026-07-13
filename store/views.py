@@ -321,7 +321,7 @@ def checkout(request):
         messages.warning(request, "Tu carrito está vacío.")
         return redirect("store:cart")
 
-    shipping = calculate_total(subtotal)
+    shipping, total = calculate_total(subtotal)
 
     if request.method == "POST":
 

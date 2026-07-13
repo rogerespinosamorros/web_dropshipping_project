@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSettings, Order, OrderItem
+from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSettings, Order, OrderItem, OrderStatusHistory
 
 
 @admin.register(Category)
@@ -63,8 +63,36 @@ class OrderItemInline(admin.TabularInline):
         "line_total",
     ]
 
+
+class OrderStatusHistoryInline(admin.TabularInline):
+
+    model = OrderStatusHistory
+
+    extra = 0
+
+    can_delete = False
+
+    show_change_link = False
+
+    fields = [
+        "status_display",
+        "notes",
+        "created_at",
+    ]
+
+    readonly_fields = [
+        "status_display",
+        "notes",
+        "created_at",
+    ]
+
+    ordering = [
+        "created_at",
+    ]   
+
     def has_add_permission(self, request, obj=None):
         return False
+
 
 
 @admin.register(Product)
@@ -183,7 +211,7 @@ class OrderAdmin(admin.ModelAdmin):
         "-created_at",
     ]
 
-    inlines = [OrderItemInline]
+    inlines = [OrderItemInline, OrderStatusHistoryInline]
 
     readonly_fields = [
         "created_at",

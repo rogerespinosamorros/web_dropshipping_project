@@ -310,10 +310,20 @@ class Order(models.Model):
 
         super().save(*args, **kwargs)
 
-        if (
-            old_status is not None
-            and old_status != self.status
-        ):
+        if old_status is None:
+
+            OrderStatusHistory.objects.create(
+                order=self,
+                status=self.status,
+                notes="Pedido creado",
+            )
+
+        elif old_status != self.status:
+
+            OrderStatusHistory.objects.create(
+                order=self,
+                status=self.status,
+            )
 
             from .emails import send_order_status_email
 
@@ -322,6 +332,43 @@ class Order(models.Model):
     @property
     def total_items(self):
         return sum(item.quantity for item in self.items.all())
+
+
+class OrderStatusHistory(models.Model):
+
+    order = models.ForeignKey(
+        Order,
+        related_name="status_history",
+        on_delete=models.CASCADE,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=Order.Status.choices,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    notes = models.CharField(
+        max_length=255,
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = "historial de estado"
+        verbose_name_plural = "historial de estados"
+        ordering = ["created_at"]
+
+    def status_display(self):
+        return self.get_status_display()
+
+    status_display.short_description = "Estado" 
+
+    def __str__(self):
+        return f"Pedido #{self.order.id} - {self.get_status_display()}"
+
 
 
 class OrderItem(models.Model):
