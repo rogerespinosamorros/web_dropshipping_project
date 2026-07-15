@@ -6,7 +6,8 @@ from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSett
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ["name", "parent", "slug"]
+    list_display = ["name", "parent", "show_on_home", "home_order", "slug"]
+    list_editable = ["show_on_home", "home_order"]
     list_filter = ["parent"]
     search_fields = ["name"]
     prepopulated_fields = {"slug": ("name",)}
@@ -169,6 +170,8 @@ class ShopSettingsAdmin(admin.ModelAdmin):
                 "store_name",
                 "contact_email",
                 "phone",
+                "announcement_enabled",
+                "announcement_text",
             )
         }),
         ("Envíos", {

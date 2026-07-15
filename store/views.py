@@ -18,7 +18,13 @@ def home(request):
         request,
         "store/home.html",
         {
-            "categories": Category.objects.filter(parent=None)[:6],
+            "categories": Category.objects.filter(
+                parent=None,
+                show_on_home=True,
+            ).order_by(
+                "home_order",
+                "name",
+            ),
             "featured_products": (
                 Product.objects
                 .filter(active=True, featured=True)
