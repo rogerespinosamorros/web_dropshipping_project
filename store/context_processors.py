@@ -1,4 +1,8 @@
+from .models import ShopSettings
+
+
 def cart_count(request):
+
     cart = request.session.get("cart", {})
 
     total = 0
@@ -13,5 +17,6 @@ def cart_count(request):
             total += item
 
     return {
-        "cart_count": total
+        "cart_count": total,
+        "shop_settings": ShopSettings.load(),
     }

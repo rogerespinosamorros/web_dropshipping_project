@@ -4,42 +4,82 @@
   <div class="hero-copy">
     <span class="eyebrow">Cultiva más. Complica menos.</span>
     <h1>Todo lo que tu cultivo necesita, <em>bien elegido.</em></h1>
-    <p>Equipamiento fiable para huertos urbanos y profesionales, con asesoramiento claro y entrega rápida.</p>
-    <div class="actions"><a class="button" href="{% url 'store:catalog' %}">Explorar catálogo</a><a class="text-link" href="#categorias">Ver categorías →</a></div>
-    <div class="proof"><span><b>+2.000</b> referencias</span><span><b>24/48 h</b> entrega</span><span><b>4,8/5</b> clientes</span></div>
+    <p>
+      Equipamiento para cultivo urbano y profesional, seleccionado para ayudarte
+      a encontrar justo lo que necesitas.
+    </p>
+    <div class="actions"><a class="button" href="{% url 'store:catalog' %}">Explorar catálogo</a><a class="text-link"
+        href="#categorias">Ver categorías →</a></div>
+
   </div>
   <div class="hero-visual">
-    <div class="plant-card"><span>Recomendado</span><div class="plant">☘</div><h3>Riego inteligente</h3><p>Ahorra hasta un 40% de agua</p></div>
+    <div class="plant-card"><span>Recomendado</span>
+      <div class="plant">☘</div>
+      <h3>Riego inteligente</h3>
+      <p>Ahorra hasta un 40% de agua</p>
+    </div>
     <div class="floating-note">✓ Selección profesional</div>
   </div>
 </section>
 
 <section class="section" id="categorias">
-  <div class="section-head"><div><span class="eyebrow">Encuentra lo que buscas</span><h2>Compra por categoría</h2></div><a href="{% url 'store:catalog' %}">Ver todo →</a></div>
+  <div class="section-head">
+    <div>
+      <span class="eyebrow">Encuentra lo que buscas</span>
+      <h2>Explora nuestras categorías</h2>
+    </div>
+  </div>
+
   <div class="category-grid">
     {% for category in categories %}
-      <a class="category-card" href="{% url 'store:catalog' %}?categoria={{ category.slug }}"><span>{{ category.icon }}</span><h3>{{ category.name }}</h3><p>{{ category.products.count }} productos</p></a>
-    {% empty %}
-      <a class="category-card" href="{% url 'store:catalog' %}"><span>💧</span><h3>Riego inteligente</h3><p>Soluciones eficientes</p></a>
-      <a class="category-card" href="{% url 'store:catalog' %}"><span>🌱</span><h3>Cultivo urbano</h3><p>Empieza en casa</p></a>
-      <a class="category-card" href="{% url 'store:catalog' %}"><span>☀</span><h3>Iluminación</h3><p>Crece todo el año</p></a>
+    <a class="category-card" href="{% url 'store:catalog' %}?categoria={{ category.slug }}">
+    <div class="category-card-header">
+        <h3>{{ category.home_title|default:category.name }}</h3>
+
+        <span class="category-arrow">→</span>
+    </div>
+</a>
     {% endfor %}
   </div>
 </section>
 
 <section class="section soft">
-  <div class="section-head"><div><span class="eyebrow">Los favoritos</span><h2>Productos destacados</h2></div><a href="{% url 'store:catalog' %}">Ver catálogo →</a></div>
+  <div class="section-head">
+    <div><span class="eyebrow">Los favoritos</span>
+      <h2>Productos destacados</h2>
+    </div><a href="{% url 'store:catalog' %}">Ver catálogo →</a>
+  </div>
   <div class="product-grid">
     {% for product in featured_products %}{% include "store/_product_card.html" %}{% empty %}
-      <div class="empty-state">Carga el catálogo demo para ver productos aquí.</div>
+    <div class="empty-state">Carga el catálogo demo para ver productos aquí.</div>
     {% endfor %}
   </div>
 </section>
 
 <section class="benefits">
-  <div><span>01</span><h3>Selección que tiene sentido</h3><p>Menos ruido, mejores productos y fichas que explican lo importante.</p></div>
-  <div><span>02</span><h3>Envíos directos y rápidos</h3><p>Conectamos pedidos y proveedores para reducir tiempos y costes.</p></div>
-  <div><span>03</span><h3>Soporte de personas</h3><p>Te ayudamos antes y después de comprar, sin respuestas automáticas vacías.</p></div>
+  <div><span>01</span>
+    <h3>Productos seleccionados</h3>
+
+    <p>
+      Un catálogo pensado para ayudarte a encontrar el material adecuado sin complicaciones.
+    </p>
+  </div>
+  <div>
+    <span>02</span>
+    <h3>Compra sencilla</h3>
+    <p>
+      Un proceso de compra claro y sin complicaciones, desde la búsqueda
+      hasta la confirmación del pedido.
+    </p>
+  </div>
+
+  <div>
+    <span>03</span>
+    <h3>Información clara</h3>
+    <p>
+      Fichas de producto completas para ayudarte a elegir el material más
+      adecuado para tu cultivo.
+    </p>
+  </div>
 </section>
 {% endblock %}
-

@@ -1,6 +1,7 @@
 {% load static %}
 <!doctype html>
 <html lang="es">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -12,36 +13,50 @@
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
+
 <body>
-  <div class="announcement">Envío gratis desde 75 € · Entrega 24/48 h en península</div>
+  {% if shop_settings.announcement_enabled and shop_settings.announcement_text %}
+  <div class="announcement">
+    {{ shop_settings.announcement_text }}
+  </div>
+  {% endif %}
   <header class="site-header">
     <a class="logo" href="{% url 'store:home' %}"><span>C</span>Cultiva</a>
     <form class="search" action="{% url 'store:catalog' %}">
-      <input name="q" value="{{ query|default:'' }}" placeholder="¿Qué necesitas para tu cultivo?" aria-label="Buscar productos">
+      <input name="q" value="{{ query|default:'' }}" placeholder="¿Qué necesitas para tu cultivo?"
+        aria-label="Buscar productos">
       <button aria-label="Buscar">Buscar</button>
     </form>
     <nav>
       <a href="{% url 'store:catalog' %}">Catálogo</a>
       <a href="/admin/">Acceso profesional</a>
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar modo de color">Modo oscuro</button>
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Cambiar modo de color">Modo
+        oscuro</button>
       <a class="cart-link" href="{% url 'store:cart' %}">Carrito <b>{{ cart_count }}</b></a>
     </nav>
   </header>
   {% if messages %}
-    <div class="messages">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
+  <div class="messages">{% for message in messages %}<p>{{ message }}</p>{% endfor %}</div>
   {% endif %}
   <main>{% block content %}{% endblock %}</main>
   <footer>
-    <div><a class="logo logo-light" href="{% url 'store:home' %}"><span>C</span>Cultiva</a><p>Una forma más sencilla de cultivar mejor.</p></div>
-    <div><strong>Compra</strong><a href="{% url 'store:catalog' %}">Catálogo</a><a href="{% url 'store:cart' %}">Carrito</a></div>
+    <div><a class="logo logo-light" href="{% url 'store:home' %}"><span>C</span>Cultiva</a>
+      <p>Una forma más sencilla de cultivar mejor.</p>
+    </div>
+    <div><strong>Compra</strong><a href="{% url 'store:catalog' %}">Catálogo</a><a
+        href="{% url 'store:cart' %}">Carrito</a></div>
     <div><strong>Ayuda</strong><a href="#">Envíos y devoluciones</a><a href="#">Contacto</a></div>
     <div><strong>Profesionales</strong><a href="/admin/">Área de gestión</a><a href="#">Trabaja con nosotros</a></div>
   </footer>
-<script src="{% static 'js/theme.js' %}"></script>
+  <script src="{% static 'js/theme.js' %}"></script>
 
-{% block extra_js %}
-{% endblock %}</body>
+  {% block extra_js %}
+  {% endblock %}
+</body>
+
 </html>

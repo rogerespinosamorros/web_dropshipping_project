@@ -18,6 +18,22 @@ class Category(models.Model):
     )
     icon = models.CharField("icono", max_length=20, default="🌿")
 
+    show_on_home = models.BooleanField(
+        default=False,
+        verbose_name="Mostrar en la página principal",
+    )
+
+    home_order = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name="Orden en la página principal",
+    )
+
+    home_title = models.CharField(
+        max_length=60,
+        blank=True,
+        verbose_name="Título para la portada",
+    )
+
     class Meta:
         verbose_name = "categoría"
         verbose_name_plural = "categorías"
@@ -436,6 +452,17 @@ class ShopSettings(models.Model):
         max_digits=5,
         decimal_places=2,
         default=21,
+    )
+
+    announcement_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Mostrar aviso superior",
+    )
+
+    announcement_text = models.CharField(
+        max_length=255,
+        blank=True,
+        verbose_name="Texto del aviso",
     )
 
     class Meta:
