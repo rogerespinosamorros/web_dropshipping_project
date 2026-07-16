@@ -21,41 +21,53 @@
 
             <div class="category-group">
 
-                <button type="button" class="category-toggle">
+    <div class="category-header">
 
-                    <span>{{ category.name }}</span>
+        <a
+            class="category-parent {% if selected_category == category.slug %}active{% endif %}"
+            href="?categoria={{ category.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
 
-                    <span class="toggle-icon">▶</span>
+            {{ category.name }}
 
-                </button>
+            <span class="count">
+                {{ category.product_count }}
+            </span>
 
-                <div class="subcategory-list">
+        </a>
 
-                    <a class="category-link {% if selected_category == category.slug %}active{% endif %}"
-                        href="?categoria={{ category.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+        {% if category.children.exists %}
+            <button
+                type="button"
+                class="category-toggle">
 
-                        Todas {{ category.name }}
+                ▸
 
-                        <span class="count">
-                            {{ category.product_count }}
-                        </span>
+            </button>
+        {% endif %}
 
-                    </a>
+    </div>
 
-                    {% for child in category.children.all %}
+    {% if category.children.all %}
 
-                    <a class="category-link {% if selected_category == child.slug %}active{% endif %}"
-                        href="?categoria={{ child.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+    <div class="subcategory-list">
 
-                        {{ child.name }}
+        {% for child in category.children.all %}
 
-                    </a>
+        <a
+            class="subcategory-link {% if selected_category == child.slug %}active{% endif %}"
+            href="?categoria={{ child.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
 
-                    {% endfor %}
+            {{ child.name }}
 
-                </div>
+        </a>
 
-            </div>
+        {% endfor %}
+
+    </div>
+
+    {% endif %}
+
+</div>
 
             {% endfor %}
 
