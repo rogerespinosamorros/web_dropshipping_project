@@ -4,6 +4,39 @@ from django.utils.text import slugify
 from django.contrib.auth.models import User
 import json
 
+class MainCategory(models.Model):
+
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+    )
+
+    slug = models.SlugField(
+        unique=True,
+    )
+
+    order = models.PositiveIntegerField(
+        default=0,
+    )
+
+    icon = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Nombre del icono (Material Symbols, Font Awesome, etc.)",
+    )
+
+    active = models.BooleanField(
+        default=True,
+    )
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name = "Categoría principal"
+        verbose_name_plural = "Categorías principales"
+
+    def __str__(self):
+        return self.name
+
 
 class Category(models.Model):
     name = models.CharField("nombre", max_length=120)
@@ -15,6 +48,13 @@ class Category(models.Model):
         related_name="children",
         on_delete=models.SET_NULL,
         verbose_name="categoría padre",
+    )
+    main_category = models.ForeignKey(
+        MainCategory,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="categories",
     )
     icon = models.CharField("icono", max_length=20, default="🌿")
 

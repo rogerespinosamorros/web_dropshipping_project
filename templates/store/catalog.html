@@ -11,65 +11,59 @@
 
         <section class="filter-section">
 
-            <h3>Categorías</h3>
-            <input type="search" id="category-filter" class="sidebar-search" placeholder="Buscar categoría...">
-            <a class="category-link {% if not selected_category %}active{% endif %}" href="{% url 'store:catalog' %}">
-                Todas
-            </a>
+      <h3>Categorías</h3>
 
-            {% for category in categories %}
+{% if not selected_main_category %}
 
-            <div class="category-group">
+<div class="main-category-list">
 
-    <div class="category-header">
+    {% for category in main_categories %}
 
         <a
-            class="category-parent {% if selected_category == category.slug %}active{% endif %}"
-            href="?categoria={{ category.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
+            class="main-category-card"
+            href="?main={{ category.slug }}">
 
             {{ category.name }}
 
-            <span class="count">
-                {{ category.product_count }}
-            </span>
-
         </a>
 
-        {% if category.children.exists %}
-            <button
-                type="button"
-                class="category-toggle">
-
-                ▸
-
-            </button>
-        {% endif %}
-
-    </div>
-
-    {% if category.children.all %}
-
-    <div class="subcategory-list">
-
-        {% for child in category.children.all %}
-
-        <a
-            class="subcategory-link {% if selected_category == child.slug %}active{% endif %}"
-            href="?categoria={{ child.slug }}{% if selected_brand %}&marca={{ selected_brand }}{% endif %}{% if query %}&q={{ query }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">
-
-            {{ child.name }}
-
-        </a>
-
-        {% endfor %}
-
-    </div>
-
-    {% endif %}
+    {% endfor %}
 
 </div>
 
-            {% endfor %}
+{% else %}
+
+<a
+    class="back-link"
+    href="{% url 'store:catalog' %}">
+
+    ← Todas las categorías
+
+</a>
+
+<h4 class="current-main-category">
+
+    {{ selected_main_category.name }}
+
+</h4>
+
+<div class="subcategory-list-modern">
+
+    {% for category in subcategories %}
+
+        <a
+            class="subcategory-modern"
+            href="?main={{ selected_main_category.slug }}&categoria={{ category.slug }}">
+
+            {{ category.name }}
+
+        </a>
+
+    {% endfor %}
+
+</div>
+
+{% endif %}
 
 
 

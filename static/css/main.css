@@ -1363,6 +1363,63 @@ footer a {
 
 }
 
+/* ===== Categorías principales ===== */
+
+.main-category-list {
+
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+
+}
+
+.main-category-card {
+
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+
+    padding: .85rem 1rem;
+
+    border: 1px solid var(--line);
+    border-radius: 12px;
+
+    background: var(--surface);
+
+    transition: .2s;
+
+}
+
+.main-category-card:hover {
+
+    border-color: var(--green);
+
+    background: var(--soft);
+
+    transform: translateX(3px);
+
+}
+
+.main-category-name {
+
+    flex: 1;
+
+    font-weight: 600;
+
+    color: var(--ink);
+
+}
+
+.main-category-icon {
+
+    width: 24px;
+
+    text-align: center;
+
+    font-size: 1.1rem;
+
+}
+
 @media (max-width:900px) {
 
     .checkout-layout {
