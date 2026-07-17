@@ -7,10 +7,11 @@ from django.http import request
 from django.shortcuts import get_object_or_404, redirect, render
 from urllib.parse import urlencode
 from .forms import CheckoutForm
-from .models import Category, Product, ProductVariant, Brand, Order, OrderItem
+from .models import Category, Product, ProductVariant, Brand, Order, OrderItem, MainCategory
 from .emails import send_order_confirmation
 from .services.orders import create_order_from_checkout
 from .services.cart import (build_cart, calculate_total,)
+
 
 
 def home(request):
@@ -45,6 +46,7 @@ def catalog(request):
 
     query = request.GET.get("q", "").strip()
     category_slug = request.GET.get("categoria", "").strip()
+    main_slug = request.GET.get("main", "").strip()
     min_price = request.GET.get("precio_min", "").strip()
     max_price = request.GET.get("precio_max", "").strip()
     sort = request.GET.get("sort", "").strip()
@@ -62,6 +64,11 @@ def catalog(request):
         products = products.filter(
             Q(category__slug=category_slug) | Q(category__parent__slug=category_slug)
         )
+
+    if main_slug:
+        products = products.filter(
+            category__main_category__slug=main_slug
+        )   
 
     if brand_slug:
         products = products.filter(brand__slug=brand_slug)
@@ -105,17 +112,40 @@ def catalog(request):
     page_obj = paginator.get_page(page_number)
 
     categories = (
-    Category.objects
-    .filter(parent=None)
-    .annotate(
-        product_count=Count(
-            "products",
-            filter=Q(products__active=True),
-            distinct=True,
+        Category.objects
+        .filter(parent=None)
+        .annotate(
+            product_count=Count(
+                "products",
+                filter=Q(products__active=True),
+                distinct=True,
+            )
         )
+        .prefetch_related("children")
     )
-    .prefetch_related("children")
-)
+
+    main_categories = (
+        MainCategory.objects
+        .filter(active=True)
+        .order_by("order")
+    )
+
+    selected_main = None
+    subcategories = Category.objects.none()
+
+    if main_slug:
+
+        selected_main = MainCategory.objects.filter(
+            slug=main_slug
+        ).first()
+
+        if selected_main:
+
+            subcategories = (
+                Category.objects
+                .filter(main_category=selected_main)
+                .order_by("name")
+            )
 
     params = request.GET.copy()
     params.pop("page", None)
@@ -141,8 +171,12 @@ def catalog(request):
         {
             "products": page_obj,
             "categories": categories,
+            "main_categories": main_categories,
             "query": query,
             "selected_category": category_slug,
+            "selected_main": main_slug,
+            "selected_main_category": selected_main,
+            "subcategories": subcategories,
             "min_price": min_price,
             "max_price": max_price,
             "page_obj": page_obj,

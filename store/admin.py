@@ -1,20 +1,76 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSettings, Order, OrderItem, OrderStatusHistory
+from .models import Brand, Category, Product, ProductVariant, Supplier, ShopSettings, Order, OrderItem, OrderStatusHistory, MainCategory
+
+@admin.register(MainCategory)
+class MainCategoryAdmin(admin.ModelAdmin):
+
+    list_display = [
+        "name",
+        "order",
+        "active",
+    ]
+
+    list_editable = [
+        "order",
+        "active",
+    ]
+
+    prepopulated_fields = {
+        "slug": ("name",)
+    }
+
+    ordering = [
+        "order",
+    ]
 
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ["name", "parent", "show_on_home", "home_order", "slug"]
-    list_editable = ["show_on_home", "home_order"]
-    list_filter = ["parent"]
-    search_fields = ["name"]
-    prepopulated_fields = {"slug": ("name",)}
-    ordering = ["parent__name", "name"]
+
+    list_display = [
+        "name",
+        "main_category",
+        "parent",
+        "show_on_home",
+        "home_order",
+        "slug",
+    ]
+
+    list_editable = [
+        "main_category",
+        "show_on_home",
+        "home_order",
+    ]
+
+    list_filter = [
+        "main_category",
+        "parent",
+    ]
+
+    search_fields = [
+        "name",
+    ]
+
+    prepopulated_fields = {
+        "slug": ("name",)
+    }
+
+    ordering = [
+        "parent__name",
+        "name",
+    ]
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("parent")
+        return (
+            super()
+            .get_queryset(request)
+            .select_related(
+                "parent",
+                "main_category",
+            )
+        )
 
 
 @admin.register(Brand)
